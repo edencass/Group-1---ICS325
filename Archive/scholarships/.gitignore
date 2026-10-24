@@ -1,0 +1,16 @@
+# Sensitive configuration
+/config.php
+/admin/.htpasswd
+
+# Uploaded files
+/uploads/*
+!/uploads/.htaccess
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.log
