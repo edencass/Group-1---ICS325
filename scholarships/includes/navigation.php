@@ -20,15 +20,15 @@ $showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrato
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/faq.php">FAQ</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/contact.php">Contact</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/search.php">Search</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/admin/import_stage.php">Import</a></li>
-
-
+        
         <?php if ($showAdmin): ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button"
                data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/scholarships.php">Manage scholarships</a></li>
+              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/providers.php">Manage providers</a></li>
+              <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_stage.php">Stage import</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_report.php">Validation report</a></li>
             </ul>
