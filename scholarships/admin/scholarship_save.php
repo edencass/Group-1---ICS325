@@ -100,6 +100,7 @@ $cleaned = [
     'official_url' => $officialUrl,
     'normalized_url' => $normalizedUrl,
     'state_region' => $state['state_code'] ?? '',
+    'state_code' => $state['state_code'] ?? null,
     'state_display' => $state['state_code'] ?? 'National',
     'state_id' => $scope === 'National' ? null : (int)$state['state_id'],
     'scope' => $scope,

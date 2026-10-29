@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1 class="h3 mb-3">Stage scholarship files</h1>
-<p class="text-muted">
+  <p class="text-muted">
   Files are parsed in your browser with SheetJS, then cleaned and validated on the server.
   Nothing touches the live <code>scholarships</code> table until you review the report and click <em>Commit</em>.
 </p>
@@ -22,12 +22,13 @@ require_once __DIR__ . '/../includes/header.php';
   <?= csrf_field() ?>
   <input type="hidden" name="payload" id="payload">
   <div class="mb-3">
-    <label class="form-label" for="files">Scholarship files (.xlsx or .csv)</label>
+        <label class="form-label" for="files">Scholarship files (.xls, .xlsx, or .csv)</label>
     <input class="form-control" type="file" id="files" name="files" multiple
-           accept=".xlsx, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv" required>
-    <div class="form-text">Max <?= (int)(MAX_UPLOAD_BYTES / 1024 / 1024) ?> MB per file.</div>
+          accept=".xls, .xlsx, .csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv" required>
+        <div class="form-text">Max <?= (int)(MAX_UPLOAD_BYTES / 1024 / 1024) ?> MB per file. Use MM/DD/YYYY for dates.</div>
   </div>
   <button class="btn btn-primary" type="submit">Stage files</button>
+      <a class="btn btn-outline-secondary" href="<?= e(APP_URL) ?>/template/scholarship-upload-template.csv" download>Download CSV template</a>
   <a class="btn btn-link" href="<?= e(APP_URL) ?>/admin/import_report.php">View pending batches</a>
 </form>
 
@@ -45,7 +46,7 @@ document.getElementById('importForm').addEventListener('submit', async (ev) => {
       // Added raw: true to prevent CSV data from being mangled by SheetJS
       const wb   = XLSX.read(buf, { type: 'array', cellDates: true, raw: true });
       const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'mm/dd/yyyy' });
       if (!rows.length) continue;
       payload.push({ name: f.name, rows });
     }

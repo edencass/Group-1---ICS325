@@ -73,26 +73,51 @@ function persist_scholarship(PDO $pdo, array $cleaned, ?int $scholarshipId = nul
     $values = [
         'provider_id' => $providerId,
         'state_id' => !empty($cleaned['state_id']) ? (int)$cleaned['state_id'] : null,
+        'state_code' => $cleaned['state_code'] ?? null,
         'title' => mb_substr((string)$cleaned['name'], 0, 255),
         'description' => $description,
+        'discovery_source' => $cleaned['discovery_source'] ?? null,
         'amount' => $cleaned['amount'] ?? null,
+        'maximum_value' => $cleaned['maximum_value'] ?? null,
+        'number_of_awards' => $cleaned['number_of_awards'] ?? null,
+        'renewable' => $cleaned['renewable'] ?? null,
         'deadline' => $cleaned['deadline'] ?? null,
         'official_url' => $cleaned['official_url'] !== '' ? $cleaned['official_url'] : null,
         'scope' => $cleaned['scope'] ?? 'State/Local',
         'is_national' => (int)($cleaned['is_national'] ?? 0),
         'open_date' => $cleaned['open_date'] ?? null,
         'verification_date' => $cleaned['verification_date'] ?? null,
+        'school_level' => $cleaned['school_level'] ?? null,
+        'residency_requirement' => $cleaned['residency'] ?? null,
+        'minimum_gpa' => $cleaned['minimum_gpa'] ?? null,
+        'financial_need_required' => $cleaned['financial_need'] ?? null,
+        'essay_required' => $cleaned['essay'] ?? null,
+        'recommendation_required' => $cleaned['recommendation'] ?? null,
+        'transcript_test_required' => $cleaned['transcript_test'] ?? null,
+        'community_service_requirement' => $cleaned['community_service'] ?? null,
+        'leadership_requirement' => $cleaned['leadership'] ?? null,
+        'other_requirements' => $cleaned['other_requirements'] ?? null,
+        'application_method' => $cleaned['application_method'] ?? null,
+        'notes' => $cleaned['notes'] ?? null,
         'validation_messages' => $validationJson,
     ];
 
     if ($scholarshipId === null) {
         $insert = $pdo->prepare(
             'INSERT INTO scholarships
-                (provider_id, state_id, title, description, amount, deadline, official_url,
-                 scope, is_national, open_date, verification_date, validation_messages)
+                (provider_id, state_id, state_code, title, description, discovery_source,
+                 amount, maximum_value, number_of_awards, renewable, deadline, official_url,
+                 scope, is_national, open_date, verification_date, school_level,
+                 residency_requirement, minimum_gpa, financial_need_required, essay_required,
+                 recommendation_required, transcript_test_required, community_service_requirement,
+                 leadership_requirement, other_requirements, application_method, notes, validation_messages)
              VALUES
-                (:provider_id, :state_id, :title, :description, :amount, :deadline, :official_url,
-                 :scope, :is_national, :open_date, :verification_date, :validation_messages)'
+                (:provider_id, :state_id, :state_code, :title, :description, :discovery_source,
+                 :amount, :maximum_value, :number_of_awards, :renewable, :deadline, :official_url,
+                 :scope, :is_national, :open_date, :verification_date, :school_level,
+                 :residency_requirement, :minimum_gpa, :financial_need_required, :essay_required,
+                 :recommendation_required, :transcript_test_required, :community_service_requirement,
+                 :leadership_requirement, :other_requirements, :application_method, :notes, :validation_messages)'
         );
         $insert->execute($values);
         $scholarshipId = (int)$pdo->lastInsertId();
@@ -100,10 +125,19 @@ function persist_scholarship(PDO $pdo, array $cleaned, ?int $scholarshipId = nul
         $values['scholarship_id'] = $scholarshipId;
         $update = $pdo->prepare(
             'UPDATE scholarships SET
-                provider_id = :provider_id, state_id = :state_id, title = :title,
-                description = :description, amount = :amount, deadline = :deadline,
+                provider_id = :provider_id, state_id = :state_id, state_code = :state_code,
+                title = :title, description = :description, discovery_source = :discovery_source,
+                amount = :amount, maximum_value = :maximum_value,
+                number_of_awards = :number_of_awards, renewable = :renewable, deadline = :deadline,
                 official_url = :official_url, scope = :scope, is_national = :is_national,
                 open_date = :open_date, verification_date = :verification_date,
+                school_level = :school_level, residency_requirement = :residency_requirement,
+                minimum_gpa = :minimum_gpa, financial_need_required = :financial_need_required,
+                essay_required = :essay_required, recommendation_required = :recommendation_required,
+                transcript_test_required = :transcript_test_required,
+                community_service_requirement = :community_service_requirement,
+                leadership_requirement = :leadership_requirement, other_requirements = :other_requirements,
+                application_method = :application_method, notes = :notes,
                 validation_messages = :validation_messages
              WHERE scholarship_id = :scholarship_id'
         );

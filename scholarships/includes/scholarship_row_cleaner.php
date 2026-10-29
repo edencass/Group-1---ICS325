@@ -27,7 +27,7 @@ function clean_scholarship_row(array $raw, array $states): array
         'provider_name' => $get('Scholarship provider/organization'),
         'provider_type' => $get('Provider type'),
         'official_url' => $get('Official scholarship URL'),
-        'state_region' => $get('State/region'),
+        'state_region' => $get('State code') !== '' ? $get('State code') : $get('State/region'),
         'scope' => $get('National vs. state/local'),
         'eligible_grades' => $get('Eligible grade levels'),
         'school_level' => $get('Middle school / high school / both'),
@@ -88,6 +88,7 @@ function clean_scholarship_row(array $raw, array $states): array
     $c['is_national'] = $isNational ? 1 : 0;
     $c['scope'] = $isNational ? 'National' : 'State/Local';
     $c['state_id'] = null;
+    $c['state_code'] = null;
     $c['state_display'] = $isNational ? 'National' : '';
 
     if (!$isNational) {
@@ -100,6 +101,7 @@ function clean_scholarship_row(array $raw, array $states): array
             if (strcasecmp((string)$stateCandidate, $stateCode) === 0
                 || strcasecmp((string)$stateCandidate, $stateName) === 0) {
                 $c['state_id'] = (int)$state['state_id'];
+                $c['state_code'] = $stateCode;
                 $c['state_display'] = $stateCode;
                 $c['state_region'] = $stateCode;
                 break;
