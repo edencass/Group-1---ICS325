@@ -32,7 +32,9 @@ function clean_scholarship_row(array $raw, array $states): array
         'eligible_grades' => $get('Eligible grade levels'),
         'school_level' => $get('Middle school / high school / both'),
         'category' => $get('Scholarship category'),
-        'field_of_interest' => $get('Field/area of interest'),
+        'field_of_interest' => $get('Field of study') !== ''
+            ? $get('Field of study')
+            : $get('Field/area of interest'),
         'award_raw' => $get('Award amount'),
         'number_of_awards' => $get('Number of awards (if known)'),
         'renewable' => $get('Renewable (Yes/No/Unknown)'),
@@ -108,7 +110,7 @@ function clean_scholarship_row(array $raw, array $states): array
             }
         }
         if ($c['state_id'] === null) {
-            $issues[] = 'State/region "' . $c['state_region'] . '" does not match a U.S. state.';
+            $issues[] = 'State code "' . $c['state_region'] . '" does not match a U.S. state code.';
             $hasError = true;
         }
     }

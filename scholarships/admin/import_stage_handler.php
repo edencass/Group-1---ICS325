@@ -49,6 +49,11 @@ foreach ($payload as $file) {
 
     foreach ($rows as $idx => $row) {
         $rowNumber = $idx + 2;   // +1 header, +1 for 1-based
+        $row = array_filter(
+            $row,
+            static fn($key): bool => strcasecmp(trim((string)$key), 'Description') !== 0,
+            ARRAY_FILTER_USE_KEY
+        );
 
         // ---- 1. clean + validate (this is where Warning/Error originate) ----
         $res = clean_scholarship_row($row, $states);

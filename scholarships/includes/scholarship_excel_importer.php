@@ -11,12 +11,12 @@ final class ScholarshipExcelImporter
         'provider_type' => 'Provider type',
         'website' => 'Official scholarship URL',
         'discovery_source' => 'Discovery source',
-        'state_region' => 'State/region',
+        'state_region' => 'State code',
         'scope' => 'National vs. state/local',
         'eligible_grades' => 'Eligible grade levels',
         'school_level' => 'Middle school / high school / both',
         'category' => 'Scholarship category',
-        'field_of_interest' => 'Field/area of interest',
+        'field_of_interest' => 'Field of study',
         'award_amount' => 'Award amount',
         'number_of_awards' => 'Number of awards (if known)',
         'renewable' => 'Renewable (Yes/No/Unknown)',
@@ -35,6 +35,11 @@ final class ScholarshipExcelImporter
         'application_method' => 'Application method',
         'verification_date' => 'Verification date',
         'notes' => 'Notes',
+    ];
+
+    private const HEADER_ALIASES = [
+        'State code' => 'State/region',
+        'Field of study' => 'Field/area of interest',
     ];
 
     public static function read(string $path): array
@@ -76,6 +81,13 @@ final class ScholarshipExcelImporter
                                     throw new RuntimeException('The Excel header row contains duplicate column names.');
                                 }
                                 $indexes[$normalized_heading] = $index;
+                            }
+                        }
+                        foreach (self::HEADER_ALIASES as $header => $alias) {
+                            $normalized_header = self::normalizeHeader($header);
+                            $normalized_alias = self::normalizeHeader($alias);
+                            if (!isset($indexes[$normalized_header]) && isset($indexes[$normalized_alias])) {
+                                $indexes[$normalized_header] = $indexes[$normalized_alias];
                             }
                         }
 
