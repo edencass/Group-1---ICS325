@@ -17,7 +17,7 @@ $params = [];
 
 // Filter by State
 if ($stateCode !== '') {
-    $where[] = "(st.state_code = :state OR s.is_national = 1)";
+    $where[] = 's.state_code = :state';
     $params['state'] = $stateCode;
 }
 
@@ -47,11 +47,10 @@ if ($keyword !== '') {
 }
 
 $sql = "SELECT s.scholarship_id, s.title, s.amount, s.deadline, s.description,
-               s.official_url, s.scope,
-               p.provider_name, st.state_code, st.state_name
+               s.official_url, s.state_code,
+               p.provider_name
           FROM scholarships s
           JOIN providers p ON p.provider_id = s.provider_id
-          LEFT JOIN states st ON st.state_id = s.state_id
          WHERE " . implode(' AND ', $where) . "
          ORDER BY s.deadline IS NULL, s.deadline ASC
          LIMIT 100";
@@ -117,7 +116,7 @@ $rows = $stmt->fetchAll();
   <div class="table-responsive">
     <table class="table table-striped align-middle">
       <thead>
-        <tr><th>Name</th><th>Provider</th><th>Scope / State</th><th>Award</th><th>Deadline</th></tr>
+        <tr><th>Name</th><th>Provider</th><th>State</th><th>Award</th><th>Deadline</th></tr>
       </thead>
       <tbody>
       <?php foreach ($rows as $r):
@@ -133,7 +132,7 @@ $rows = $stmt->fetchAll();
             <?php endif; ?>
           </td>
           <td><?= e($r['provider_name']) ?></td>
-          <td><?= e($r['state_code'] ?? 'National') ?></td>
+          <td><?= e($r['state_code'] ?: 'National') ?></td>
           <td><?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></td>
           <td><?= e($r['deadline'] !== null ? format_date_us((string)$r['deadline']) : 'Rolling') ?></td>
         </tr>
