@@ -5,12 +5,36 @@ require_once __DIR__ . '/../includes/scholarship_row_cleaner.php';
 require_once __DIR__ . '/../includes/header.php';
 
 $pdo = db();
+$states = $pdo->query("SELECT state_code, state_name FROM states ORDER BY state_code = 'NA' DESC, state_name")->fetchAll();
+$fields = $pdo->query("SELECT field_id, field_name FROM fields_of_study ORDER BY field_name")->fetchAll();
 
 // Read inputs
 $stateCode = trim((string)($_GET['state'] ?? ''));
 $grade     = (int)($_GET['grade'] ?? 0);
 $fieldId   = (int)($_GET['field'] ?? 0);
 $keyword   = trim((string)($_GET['q'] ?? ''));
+
+$searchSubmitted = array_intersect(['state', 'grade', 'field', 'q'], array_keys($_GET)) !== [];
+if ($searchSubmitted) {
+  $validStateCodes = array_column($states, 'state_code');
+  $validFieldIds = array_map('intval', array_column($fields, 'field_id'));
+  $logStateCode = in_array($stateCode, $validStateCodes, true) ? $stateCode : null;
+  $logGrade = ($grade >= 6 && $grade <= 12) ? $grade : null;
+  $logFieldId = in_array($fieldId, $validFieldIds, true) ? $fieldId : null;
+
+  try {
+    $log = $pdo->prepare(
+      'INSERT INTO anonymous_search_log (state_code, grade, field_id)
+       VALUES (:state_code, :grade, :field_id)'
+    );
+    $log->bindValue(':state_code', $logStateCode, $logStateCode === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $log->bindValue(':grade', $logGrade, $logGrade === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+    $log->bindValue(':field_id', $logFieldId, $logFieldId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+    $log->execute();
+  } catch (PDOException $e) {
+    error_log('Anonymous search logging failed: ' . $e->getMessage());
+  }
+}
 
 $where  = ["s.scholarship_id IS NOT NULL"];
 $params = [];
@@ -42,8 +66,11 @@ if ($fieldId > 0) {
 
 // Keyword Search
 if ($keyword !== '') {
-    $where[] = "(s.title LIKE :kw OR p.provider_name LIKE :kw OR s.description LIKE :kw)";
-    $params['kw'] = '%' . $keyword . '%';
+  $where[] = '(s.title LIKE :kw_title OR p.provider_name LIKE :kw_provider OR s.description LIKE :kw_description)';
+  $keywordPattern = '%' . $keyword . '%';
+  $params['kw_title'] = $keywordPattern;
+  $params['kw_provider'] = $keywordPattern;
+  $params['kw_description'] = $keywordPattern;
 }
 
 $sql = "SELECT s.scholarship_id, s.title, s.amount, s.deadline, s.description,
@@ -68,7 +95,6 @@ $rows = $stmt->fetchAll();
     <select class="form-select" id="state" name="state">
       <option value="">Any</option>
       <?php
-        $states = $pdo->query("SELECT state_code, state_name FROM states ORDER BY state_code = 'NA' DESC, state_name")->fetchAll();
         foreach ($states as $s):
           $sel = ($s['state_code'] === $stateCode) ? 'selected' : '';
       ?>
@@ -90,7 +116,6 @@ $rows = $stmt->fetchAll();
     <select class="form-select" id="field" name="field">
       <option value="">Any</option>
       <?php
-        $fields = $pdo->query("SELECT field_id, field_name FROM fields_of_study ORDER BY field_name")->fetchAll();
         foreach ($fields as $f):
           $sel = ((int)$f['field_id'] === $fieldId) ? 'selected' : '';
       ?>
