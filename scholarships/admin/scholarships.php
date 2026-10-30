@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/scholarship_row_cleaner.php';
 require_role(['Administrator', 'Super-admin']);
 
 $page_title = 'Manage Scholarships';
@@ -65,7 +66,7 @@ $rows = $pdo->query(
         <td><?= e($row['scope'] === 'National' ? 'National' : 'State/Local' . ($row['state_code'] ? ' (' . $row['state_code'] . ')' : '')) ?></td>
         <td><?= e($row['categories'] ?? '') ?></td>
         <td><?= $row['amount'] !== null ? '$' . number_format((float)$row['amount'], 2) : 'Varies' ?></td>
-        <td><?= e($row['deadline'] ?? 'Rolling') ?></td>
+        <td><?= e($row['deadline'] !== null ? format_date_us((string)$row['deadline']) : 'Rolling') ?></td>
         <td>
           <?php if ($messageCount): ?>
             <span class="badge bg-warning text-dark" title="<?= e(implode(' ', $messages)) ?>">

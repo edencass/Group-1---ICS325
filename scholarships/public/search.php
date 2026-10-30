@@ -1,6 +1,7 @@
 <?php
 $page_title = 'Search Scholarships';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/scholarship_row_cleaner.php';
 require_once __DIR__ . '/../includes/header.php';
 
 $pdo = db();
@@ -134,7 +135,7 @@ $rows = $stmt->fetchAll();
           <td><?= e($r['provider_name']) ?></td>
           <td><?= e($r['state_code'] ?? 'National') ?></td>
           <td><?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></td>
-          <td><?= e($r['deadline'] ?? 'Rolling') ?></td>
+          <td><?= e($r['deadline'] !== null ? format_date_us((string)$r['deadline']) : 'Rolling') ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

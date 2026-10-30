@@ -20,7 +20,16 @@ function clean_scholarship_row(array $raw, array $states): array
 {
     $issues = [];
     $hasError = false;
-    $get = static fn(string $key): string => clean_import_text($raw[$key] ?? '');
+    $normalizeHeader = static fn(string $key): string => strtolower(
+        trim((string)preg_replace('/[\s_]+/u', ' ', $key))
+    );
+    $normalizedRaw = [];
+    foreach ($raw as $key => $value) {
+        $normalizedRaw[$normalizeHeader((string)$key)] ??= $value;
+    }
+    $get = static function (string $key) use ($raw, $normalizedRaw, $normalizeHeader): string {
+        return clean_import_text($raw[$key] ?? $normalizedRaw[$normalizeHeader($key)] ?? '');
+    };
 
     $c = [
         'name' => $get('Scholarship name'),
@@ -93,26 +102,26 @@ function clean_scholarship_row(array $raw, array $states): array
     $c['state_code'] = null;
     $c['state_display'] = $isNational ? 'National' : '';
 
-    if (!$isNational) {
-        $stateCandidate = preg_replace('/^\s*state of\s+/i', '', $c['state_region']);
-        $stateCandidate = preg_replace('/\s*,?\s*(?:u\.?s\.?a?\.?|united states)$/i', '', (string)$stateCandidate);
-        $stateCandidate = preg_replace('/\s+state$/i', '', (string)$stateCandidate);
-        foreach ($states as $state) {
-            $stateName = clean_import_text($state['state_name'] ?? '');
-            $stateCode = clean_import_text($state['state_code'] ?? '');
-            if (strcasecmp((string)$stateCandidate, $stateCode) === 0
-                || strcasecmp((string)$stateCandidate, $stateName) === 0) {
+    $stateCandidate = preg_replace('/^\s*state of\s+/i', '', $c['state_region']);
+    $stateCandidate = preg_replace('/\s*,?\s*(?:u\.?s\.?a?\.?|united states)$/i', '', (string)$stateCandidate);
+    $stateCandidate = preg_replace('/\s+state$/i', '', (string)$stateCandidate);
+    foreach ($states as $state) {
+        $stateName = clean_import_text($state['state_name'] ?? '');
+        $stateCode = clean_import_text($state['state_code'] ?? '');
+        if (strcasecmp((string)$stateCandidate, $stateCode) === 0
+            || strcasecmp((string)$stateCandidate, $stateName) === 0) {
+            $c['state_code'] = $stateCode;
+            if (!$isNational) {
                 $c['state_id'] = (int)$state['state_id'];
-                $c['state_code'] = $stateCode;
                 $c['state_display'] = $stateCode;
                 $c['state_region'] = $stateCode;
-                break;
             }
+            break;
         }
-        if ($c['state_id'] === null) {
-            $issues[] = 'State code "' . $c['state_region'] . '" does not match a U.S. state code.';
-            $hasError = true;
-        }
+    }
+    if (!$isNational && $c['state_id'] === null) {
+        $issues[] = 'State code "' . $c['state_region'] . '" does not match a U.S. state code.';
+        $hasError = true;
     }
 
     foreach ([
@@ -191,10 +200,27 @@ function parse_date_or_null(string $value): ?string
     if ($value === '') {
         return null;
     }
-    foreach ([
-        '!Y-m-d', '!Y-m-d H:i:s', '!m/d/Y', '!n/j/Y', '!m/d/y', '!n/j/y',
-        '!F j, Y', '!M j, Y', '!F j Y', '!M j Y',
-    ] as $format) {
+
+    if (preg_match('/^(\d{4}-\d{2}-\d{2})(?:T|\s)/', $value, $matches)) {
+        $value = $matches[1];
+    }
+
+    if (preg_match('/^(\d{1,4})[\/-](\d{1,2})[\/-](\d{1,4})$/', $value, $matches)) {
+        if (strlen($matches[1]) === 4 || (int)$matches[1] > 12) {
+            [$year, $month, $day] = [(int)$matches[1], (int)$matches[2], (int)$matches[3]];
+        } else {
+            [$month, $day, $year] = [(int)$matches[1], (int)$matches[2], (int)$matches[3]];
+        }
+        if ($year < 100) {
+            $year += $year <= 69 ? 2000 : 1900;
+        }
+        if (checkdate($month, $day, $year)) {
+            return sprintf('%04d-%02d-%02d', $year, $month, $day);
+        }
+        return null;
+    }
+
+    foreach (['!F j, Y', '!M j, Y', '!F j Y', '!M j Y'] as $format) {
         $date = DateTimeImmutable::createFromFormat($format, $value);
         $errors = DateTimeImmutable::getLastErrors();
         if ($date !== false
@@ -203,6 +229,16 @@ function parse_date_or_null(string $value): ?string
         }
     }
     return null;
+}
+
+function format_date_us(?string $value): string
+{
+    $date = $value === null ? null : parse_date_or_null($value);
+    if ($date === null) {
+        return $value ?? '';
+    }
+    $formattedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+    return $formattedDate === false ? $value : $formattedDate->format('m/d/Y');
 }
 
 function parse_grade_range(string $value): array

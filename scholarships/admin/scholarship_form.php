@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/scholarship_row_cleaner.php';
 require_role(['Administrator', 'Super-admin']);
 
 $pdo = db();
@@ -125,15 +126,15 @@ $value = static fn(string $key, mixed $default = ''): string =>
     </div>
     <div class="col-md-4">
       <label class="form-label" for="open_date">Application open date</label>
-      <input class="form-control" type="date" id="open_date" name="open_date" value="<?= e((string)($record['open_date'] ?? $details['open_date'] ?? '')) ?>">
+      <input class="form-control" type="date" id="open_date" name="open_date" value="<?= e(parse_date_or_null((string)($record['open_date'] ?? $details['open_date'] ?? '')) ?? '') ?>">
     </div>
     <div class="col-md-4">
       <label class="form-label" for="deadline">Application deadline</label>
-      <input class="form-control" type="date" id="deadline" name="deadline" value="<?= e((string)($record['deadline'] ?? '')) ?>">
+      <input class="form-control" type="date" id="deadline" name="deadline" value="<?= e(parse_date_or_null((string)($record['deadline'] ?? '')) ?? '') ?>">
     </div>
     <div class="col-md-4">
       <label class="form-label" for="verification_date">Verification date</label>
-      <input class="form-control" type="date" id="verification_date" name="verification_date" value="<?= e((string)($record['verification_date'] ?? $details['verification_date'] ?? '')) ?>">
+      <input class="form-control" type="date" id="verification_date" name="verification_date" value="<?= e(parse_date_or_null((string)($record['verification_date'] ?? $details['verification_date'] ?? '')) ?? '') ?>">
     </div>
     <div class="col-md-4">
       <label class="form-label" for="eligible_grades">Eligible grades</label>
