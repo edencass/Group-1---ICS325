@@ -76,7 +76,7 @@ $rows = $stmt->fetchAll();
         $url = $r['official_url'] ?: '#';
       ?>
         <tr>
-          <td><a href="detail.php?id=<?= (int)$r['scholarship_id'] ?>"><strong><?= e($r['title']) ?></strong></a></td>
+          <td><a href="scholarship_detail.php?id=<?= (int)$r['scholarship_id'] ?>"><strong><?= e($r['title']) ?></strong></a></td>
           <td><?= e($r['provider_name']) ?></td>
           <td><?= e($r['state_code'] ?? 'National') ?></td>
           <td><?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></td>
@@ -92,7 +92,7 @@ $rows = $stmt->fetchAll();
     <?php foreach ($rows as $r): ?>
       <div class="card mb-3">
         <div class="card-body">
-          <h5 class="card-title"><a href="detail.php?id=<?= (int)$r['scholarship_id'] ?>"><?= e($r['title']) ?></a></h5>
+          <h5 class="card-title"><a href="scholarship_detail.php?id=<?= (int)$r['scholarship_id'] ?>"><?= e($r['title']) ?></a></h5>
           <h6 class="card-subtitle mb-2 text-muted"><?= e($r['provider_name']) ?></h6>
           <p class="card-text mb-1"><strong>Scope:</strong> <?= e($r['state_code'] ?? 'National') ?></p>
           <p class="card-text mb-1"><strong>Award:</strong> <?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></p>
