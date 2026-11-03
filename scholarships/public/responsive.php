@@ -1,17 +1,16 @@
 <?php if (!$rows): ?>
   <div class="alert alert-info">No scholarships match those filters yet. Try uploading some data via the Admin Import page!</div>
 <?php else: ?>
+  <!-- Mobile View: Cards -->
   <div class="d-md-none">
-    <?php foreach ($rows as $r):
-      $d = json_decode((string)$r['description'], true) ?: [];
-      $url = $r['official_url'] ?? $d['official_url'] ?? '';
-      $verification = $r['verification_date'] ?? null;
-    ?>
+    <?php foreach ($rows as $r): ?>
       <div class="card shadow-sm mb-3">
         <div class="card-body">
-          <h5 class="card-title"><?= e($r['title']) ?></h5>
+          <h5 class="card-title">
+            <a href="scholarship_detail.php?id=<?= (int)$r['scholarship_id'] ?>"><?= e($r['title']) ?></a>
+          </h5>
           <p class="mb-2"><strong>Provider:</strong> <?= e($r['provider_name']) ?></p>
-          <p class="mb-2"><strong>State:</strong> <?= e($r['state_code'] ?: 'National') ?></p>
+          <p class="mb-2"><strong>State:</strong> <?= $r['is_national'] ? 'National' : e($r['state_name'] ?? 'State/Local') ?></p>
           <p class="mb-2"><strong>Award:</strong>
             <?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?>
           </p>
@@ -19,20 +18,21 @@
             <?= $r['deadline'] !== null ? e(format_date_us((string)$r['deadline'])) : 'Rolling' ?>
           </p>
           <p class="mb-2"><strong>Official URL:</strong>
-            <?php if ($url): ?>
-              <a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($url) ?></a>
+            <?php if (!empty($r['official_url'])): ?>
+              <a href="<?= e($r['official_url']) ?>" target="_blank" rel="noopener"><?= e($r['official_url']) ?></a>
             <?php else: ?>
               Not provided
             <?php endif; ?>
           </p>
           <p class="mb-0"><strong>Verification date:</strong>
-            <?= $verification ? e(format_date_us((string)$verification)) : 'Unverified' ?>
+            <?= !empty($r['verification_date']) ? e(format_date_us((string)$r['verification_date'])) : 'Unverified' ?>
           </p>
         </div>
       </div>
     <?php endforeach; ?>
   </div>
 
+  <!-- Desktop View: Table -->
   <div class="d-none d-md-block">
     <div class="table-responsive">
       <table class="table table-striped align-middle">
@@ -48,25 +48,23 @@
           </tr>
         </thead>
         <tbody>
-        <?php foreach ($rows as $r):
-          $d = json_decode((string)$r['description'], true) ?: [];
-          $url = $r['official_url'] ?? $d['official_url'] ?? '';
-          $verification = $r['verification_date'] ?? null;
-        ?>
+        <?php foreach ($rows as $r): ?>
           <tr>
-            <td><?= e($r['title']) ?></td>
-            <td><?= e($r['provider_name']) ?></td>
-            <td><?= e($r['state_code'] ?: 'National') ?></td>
-            <td><?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></td>
-            <td><?= e($r['deadline'] !== null ? format_date_us((string)$r['deadline']) : 'Rolling') ?></td>
             <td>
-              <?php if ($url): ?>
-                <a href="<?= e($url) ?>" target="_blank" rel="noopener">Official site</a>
+              <a href="scholarship_detail.php?id=<?= (int)$r['scholarship_id'] ?>"><strong><?= e($r['title']) ?></strong></a>
+            </td>
+            <td><?= e($r['provider_name']) ?></td>
+            <td><?= $r['is_national'] ? 'National' : e($r['state_name'] ?? 'State/Local') ?></td>
+            <td><?= $r['amount'] !== null ? '$' . number_format((float)$r['amount']) : 'Varies' ?></td>
+            <td><?= $r['deadline'] !== null ? e(format_date_us((string)$r['deadline'])) : 'Rolling' ?></td>
+            <td>
+              <?php if (!empty($r['official_url'])): ?>
+                <a href="<?= e($r['official_url']) ?>" target="_blank" rel="noopener">Official site</a>
               <?php else: ?>
                 —
               <?php endif; ?>
             </td>
-            <td><?= $verification ? e(format_date_us((string)$verification)) : 'Unverified' ?></td>
+            <td><?= !empty($r['verification_date']) ? e(format_date_us((string)$r['verification_date'])) : 'Unverified' ?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>
