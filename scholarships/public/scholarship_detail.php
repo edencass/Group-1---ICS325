@@ -1,6 +1,7 @@
 <?php
 $page_title = 'Scholarship Details';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/scholarship_row_cleaner.php'; // For format_date_us()
 require_once __DIR__ . '/../includes/header.php';
 
 $pdo = db();
@@ -42,7 +43,7 @@ $details = json_decode((string)$s['description'], true) ?: [];
       <div class="col-md-6">
         <ul class="list-group list-group-flush">
           <li class="list-group-item"><strong>Award Amount:</strong> <?= $s['amount'] !== null ? '$' . number_format((float)$s['amount']) : 'Varies' ?></li>
-          <li class="list-group-item"><strong>Deadline:</strong> <?= e($s['deadline'] ?? 'Rolling') ?></li>
+          <li class="list-group-item"><strong>Deadline:</strong> <?= e($s['deadline'] ? format_date_us($s['deadline']) : 'Rolling') ?></li>
           <li class="list-group-item"><strong>Location:</strong> <?= $s['is_national'] ? 'National' : e($s['state_name'] ?? 'State/Local') ?></li>
         </ul>
       </div>
@@ -57,7 +58,7 @@ $details = json_decode((string)$s['description'], true) ?: [];
 
     <div class="alert alert-info">
       <strong>Data Accuracy:</strong> This record was last verified on 
-      <strong><?= e($s['verification_date'] ?? 'Unknown') ?></strong>. 
+      <strong><?= $s['verification_date'] ? e(format_date_us($s['verification_date'])) : 'Unknown' ?></strong>. 
       Always confirm details at the official provider URL before applying.
     </div>
 
