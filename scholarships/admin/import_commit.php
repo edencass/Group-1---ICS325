@@ -23,9 +23,9 @@ try {
     $findProv = $pdo->prepare('SELECT provider_id FROM providers WHERE provider_name = ? LIMIT 1');
     $addProv  = $pdo->prepare('INSERT INTO providers (provider_type_id, provider_name, website) VALUES (?,?,?)');
     
-    $addSch   = $pdo->prepare('INSERT INTO scholarships 
-        (provider_id, state_id, state_code, title, description, amount, deadline, official_url, scope, is_national, validation_messages) 
-        VALUES (:pid, :sid, :scode, :t, :d, :a, :dl, :url, :scope, :isnat, :vmsg)');
+    $addSch   = $pdo->prepare('INSERT INTO scholarships
+        (provider_id, state_id, state_code, title, description, amount, deadline, official_url, scope, is_national, open_date, verification_date, validation_messages)
+        VALUES (:pid, :sid, :scode, :t, :d, :a, :dl, :url, :scope, :isnat, :od, :vd, :vmsg)');
         
     $updStage = $pdo->prepare("UPDATE import_staging_rows SET validation_status = 'imported' WHERE row_id = ?");
 
@@ -76,6 +76,8 @@ try {
             'url' => $c['official_url'],
             'scope' => $c['scope'],
             'isnat' => (int)$c['is_national'],
+            'od' => $c['open_date'],
+            'vd' => $c['verification_date'],
             'vmsg' => $vMsg
         ]);
         
