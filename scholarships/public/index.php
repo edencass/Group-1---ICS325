@@ -17,6 +17,8 @@ $fields = $pdo->query(
   <div class="row align-items-center g-4">
     <div class="col-md-7">
       <h1 class="display-4 fw-bold mb-4">Find Your Scholarship</h1>
+      
+      <!-- Quick Search Form -->
       <form class="row g-2" action="<?= e(APP_URL) ?>/public/search.php" method="get">
         <div class="col-md-4">
           <label for="state" class="visually-hidden">State</label>
@@ -59,6 +61,7 @@ $fields = $pdo->query(
   </div>
 </section>
 
+<!-- Keyword search -->
 <section class="border-top border-bottom py-4 mb-5">
   <form class="row justify-content-center g-2"
         action="<?= e(APP_URL) ?>/public/search.php" method="get">

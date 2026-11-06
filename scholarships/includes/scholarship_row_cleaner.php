@@ -2,275 +2,184 @@
 declare(strict_types=1);
 require_once __DIR__ . '/url_normalizer.php';
 
-function clean_import_text(mixed $value): string
-{
-    if ($value === null) {
-        return '';
-    }
-    if (!is_scalar($value) && !($value instanceof Stringable)) {
-        return '';
-    }
-    $text = (string)$value;
-    $text = preg_replace('/\x{00A0}/u', ' ', $text) ?? $text;
-    $text = preg_replace('/[\p{Z}\s]+/u', ' ', $text) ?? $text;
-    return trim($text);
-}
-
 function clean_scholarship_row(array $raw, array $states): array
 {
-    $issues = [];
-    $hasError = false;
-    $normalizeHeader = static fn(string $key): string => strtolower(
-        trim((string)preg_replace('/[\s_]+/u', ' ', $key))
-    );
-    $normalizedRaw = [];
-    foreach ($raw as $key => $value) {
-        $normalizedRaw[$normalizeHeader((string)$key)] ??= $value;
-    }
-    $get = static function (string $key) use ($raw, $normalizedRaw, $normalizeHeader): string {
-        return clean_import_text($raw[$key] ?? $normalizedRaw[$normalizeHeader($key)] ?? '');
+    $issues    = [];
+    $has_error = false;
+    
+    $get = static function(string $k, string $alt = '') use ($raw): string {
+        $val = $raw[$k] ?? ($alt !== '' ? ($raw[$alt] ?? '') : '');
+        return trim(preg_replace('/\x{00A0}/u', ' ', (string)$val));
     };
 
-    $c = [
-        'name' => $get('Scholarship name'),
-        'provider_name' => $get('Scholarship provider/organization'),
-        'provider_type' => $get('Provider type'),
-        'official_url' => $get('Official scholarship URL'),
-        'state_region' => $get('State code') !== '' ? $get('State code') : $get('State/region'),
-        'scope' => $get('National vs. state/local'),
-        'eligible_grades' => $get('Eligible grade levels'),
-        'school_level' => $get('Middle school / high school / both'),
-        'category' => $get('Scholarship category'),
-        'field_of_interest' => $get('Field of study') !== ''
-            ? $get('Field of study')
-            : $get('Field/area of interest'),
-        'award_raw' => $get('Award amount'),
-        'number_of_awards' => $get('Number of awards (if known)'),
-        'renewable' => $get('Renewable (Yes/No/Unknown)'),
-        'maximum_value_raw' => $get('Maximum potential value'),
-        'open_date_raw' => $get('Application open date (if known)'),
-        'deadline_raw' => $get('Application deadline'),
-        'residency' => $get('Residency requirement'),
-        'minimum_gpa' => $get('Minimum GPA (if any)'),
-        'financial_need' => $get('Financial need required (Yes/No/Unknown)'),
-        'essay' => $get('Essay required'),
-        'recommendation' => $get('Recommendation required'),
-        'transcript_test' => $get('Transcript/test score required'),
-        'community_service' => $get('Community service requirement'),
-        'leadership' => $get('Leadership requirement'),
-        'other_requirements' => $get('Other major eligibility requirements'),
-        'application_method' => $get('Application method'),
-        'verification_date_raw' => $get('Verification date'),
-        'notes' => $get('Notes'),
-        'discovery_source' => $get('Discovery source'),
-    ];
+    $c = [];
+    $c['name']          = $get('Scholarship name');
+    $c['provider_name'] = $get('Scholarship provider/organization');
+    $c['provider_type'] = $get('Provider type');
+    $c['official_url']  = $get('Official scholarship URL');
+    $c['state_region']  = $get('State/region', 'State code');
+    $c['scope']         = $get('National vs. state/local', 'National vs. State/Local');
+    $c['eligible_grades'] = $get('Eligible grade levels');
+    $c['school_level']  = $get('Middle school / high school / both');
+    $c['category']      = $get('Scholarship category');
+    $c['field_of_interest'] = $get('Field/area of interest');
+    $c['award_raw']     = $get('Award amount');
+    $c['number_of_awards'] = $get('Number of awards (if known)');
+    $c['renewable']     = $get('Renewable (Yes/No/Unknown)');
+    $c['maximum_value_raw'] = $get('Maximum potential value');
+    $c['open_date_raw'] = $get('Application open date (if known)');
+    $c['deadline_raw']  = $get('Application deadline');
+    $c['residency']     = $get('Residency requirement');
+    $c['minimum_gpa']   = $get('Minimum GPA (if any)');
+    $c['financial_need'] = $get('Financial need required (Yes/No/Unknown)');
+    $c['essay']         = $get('Essay required');
+    $c['recommendation'] = $get('Recommendation required');
+    $c['transcript_test'] = $get('Transcript/test score required');
+    $c['community_service'] = $get('Community service requirement');
+    $c['leadership']    = $get('Leadership requirement');
+    $c['other_requirements'] = $get('Other major eligibility requirements');
+    $c['application_method'] = $get('Application method');
+    $c['verification_date_raw'] = $get('Verification date');
+    $c['notes']         = $get('Notes');
+    $c['discovery_source'] = $get('Discovery source');
 
-    foreach ([
-        'name' => 'Scholarship name',
-        'provider_name' => 'Scholarship provider/organization',
-        'provider_type' => 'Provider type',
-    ] as $key => $label) {
-        if ($c[$key] === '') {
-            $issues[] = $label . ' is required.';
-            $hasError = true;
-        }
-    }
+    if ($c['name'] === '')          { $issues[] = 'Scholarship name is required.'; $has_error = true; }
+    if ($c['provider_name'] === '') { $issues[] = 'Scholarship provider/organization is required.'; $has_error = true; }
+    if ($c['provider_type'] === '') { $issues[] = 'Provider type is required.'; $has_error = true; }
 
     $c['normalized_url'] = normalize_url($c['official_url']);
-    if ($c['normalized_url'] !== null && !preg_match('~^https?://~i', $c['official_url'])) {
-        $c['official_url'] = 'https://' . $c['official_url'];
-    }
     if ($c['official_url'] === '') {
         $issues[] = 'Official scholarship URL is missing.';
-        $hasError = true;
+        $has_error = true;
     } elseif ($c['normalized_url'] === null) {
-        $issues[] = 'Official scholarship URL is not a valid HTTP or HTTPS URL.';
-        $hasError = true;
+        $issues[] = 'Official scholarship URL is not a valid http(s) URL.';
+        $has_error = true;
     }
 
-    $region = mb_strtolower($c['state_region'], 'UTF-8');
-    $scopeText = mb_strtolower($c['scope'], 'UTF-8');
-    $isNational = str_contains($scopeText, 'national')
-        || str_contains($scopeText, 'nationwide')
-        || str_contains($scopeText, 'federal')
-        || str_contains($scopeText, 'all states')
-        || str_contains($region, 'national')
-        || in_array($region, ['usa', 'u.s.', 'u.s.a.', 'united states', 'nationwide'], true);
-    $c['is_national'] = $isNational ? 1 : 0;
-    $c['scope'] = $isNational ? 'National' : 'State/Local';
+    // ----- FIXED STATE LOGIC -----
     $c['state_id'] = null;
-    $c['state_code'] = null;
-    $c['state_display'] = $isNational ? 'National' : '';
+    $c['state_display'] = '';
+    $isNational = 0;
 
-    $stateCandidate = preg_replace('/^\s*state of\s+/i', '', $c['state_region']);
-    $stateCandidate = preg_replace('/\s*,?\s*(?:u\.?s\.?a?\.?|united states)$/i', '', (string)$stateCandidate);
-    $stateCandidate = preg_replace('/\s+state$/i', '', (string)$stateCandidate);
-    foreach ($states as $state) {
-        $stateName = clean_import_text($state['state_name'] ?? '');
-        $stateCode = clean_import_text($state['state_code'] ?? '');
-        if (strcasecmp((string)$stateCandidate, $stateCode) === 0
-            || strcasecmp((string)$stateCandidate, $stateName) === 0) {
-            $c['state_code'] = $stateCode;
-            if (!$isNational) {
-                $c['state_id'] = (int)$state['state_id'];
-                $c['state_display'] = $stateCode;
-                $c['state_region'] = $stateCode;
+    if ($c['state_region'] !== '' && stripos($c['state_region'], 'national') === false) {
+        foreach ($states as $s) {
+            if (strcasecmp($c['state_region'], $s['state_code']) === 0) {
+                $c['state_id']      = (int)$s['state_id'];
+                $c['state_display'] = $s['state_code'];
+                break;
             }
-            break;
         }
     }
-    if (!$isNational && $c['state_id'] === null) {
-        $issues[] = 'State code "' . $c['state_region'] . '" does not match a U.S. state code.';
-        $hasError = true;
+
+    if ($c['state_id'] !== null) {
+        $isNational = 0;
+        $c['state_display'] = $c['state_region'];
+    } else {
+        $isNational = 1;
+        $c['state_display'] = 'NA';
     }
 
-    foreach ([
-        'renewable', 'financial_need', 'essay', 'recommendation',
-        'transcript_test', 'community_service', 'leadership',
-    ] as $field) {
-        $c[$field] = normalize_yes_no($c[$field]);
+    $c['is_national'] = $isNational;
+    $c['scope'] = $isNational ? 'National' : 'State/Local';
+
+    foreach (['renewable','financial_need','essay','recommendation','transcript_test',
+              'community_service','leadership'] as $f) {
+        $c[$f] = normalize_yes_no($c[$f]);
     }
 
     $c['amount'] = parse_money($c['award_raw']);
-    if ($c['amount'] === null && $c['award_raw'] !== ''
-        && !preg_match('/\b(vary|varies|unknown|not stated)\b/i', $c['award_raw'])) {
-        $issues[] = 'Award amount "' . $c['award_raw'] . '" could not be parsed.';
-    }
     $c['maximum_value'] = parse_money($c['maximum_value_raw']);
-    if ($c['maximum_value'] === null && $c['maximum_value_raw'] !== '') {
-        $issues[] = 'Maximum potential value "' . $c['maximum_value_raw'] . '" could not be parsed.';
-    }
 
-    $c['deadline'] = parse_date_or_null($c['deadline_raw']);
-    $c['open_date'] = parse_date_or_null($c['open_date_raw']);
+    $c['deadline']          = parse_date_or_null($c['deadline_raw']);
+    $c['open_date']         = parse_date_or_null($c['open_date_raw']);
     $c['verification_date'] = parse_date_or_null($c['verification_date_raw']);
-    if ($c['deadline'] === null && $c['deadline_raw'] !== ''
-        && !preg_match('/\b(rolling|not posted|tbd|none)\b/i', $c['deadline_raw'])) {
-        $issues[] = 'Deadline "' . $c['deadline_raw'] . '" is not a recognizable date.';
-    }
-    foreach ([
-        'open_date' => ['raw' => 'open_date_raw', 'label' => 'Application open date'],
-        'verification_date' => ['raw' => 'verification_date_raw', 'label' => 'Verification date'],
-    ] as $dateField => $dateInfo) {
-        if ($c[$dateField] === null && $c[$dateInfo['raw']] !== '') {
-            $issues[] = $dateInfo['label'] . ' "' . $c[$dateInfo['raw']] . '" is not a recognizable date.';
-        }
-    }
 
-    $c['grade_ids'] = parse_grade_range($c['eligible_grades']);
+    // ----- FIXED GRADE LOGIC -----
+    // If the CSV says "HS/College" or "High School", we force it to map to grades 9-12.
+    // If it says "All", we map it to 6-12.
+    $gradeInput = strtolower($c['eligible_grades']);
+    $grade_ids = [];
+    if (str_contains($gradeInput, 'all') || str_contains($gradeInput, 'both')) {
+        $grade_ids = [6,7,8,9,10,11,12];
+    } elseif (str_contains($gradeInput, 'hs') || str_contains($gradeInput, 'high')) {
+        $grade_ids = [9,10,11,12];
+    } else {
+        $grade_ids = parse_grade_range($c['eligible_grades']);
+    }
+    $c['grade_ids'] = $grade_ids;
+
+    // ----- FIXED FIELD LOGIC -----
+    // If the CSV says "General" or "Any", we map it to "Any / Undecided"
+    $fieldStr = $c['field_of_interest'];
+    if (strcasecmp($fieldStr, 'General') === 0 || strcasecmp($fieldStr, 'Any') === 0) {
+        $c['field_of_interest'] = 'Any / Undecided';
+    }
 
     return [
-        'cleaned' => $c,
-        'issues' => $issues,
-        'has_error' => $hasError,
+        'cleaned'        => $c,
+        'issues'         => $issues,
+        'has_error'      => $has_error,
         'normalized_url' => $c['normalized_url'],
     ];
 }
 
-function normalize_yes_no(string $value): string
+function normalize_yes_no(string $v): string
 {
-    $value = mb_strtolower(clean_import_text($value), 'UTF-8');
-    if (in_array($value, ['yes', 'y', 'true', 'required', '1'], true)) {
-        return 'Yes';
-    }
-    if (in_array($value, ['no', 'n', 'false', 'not required', '0'], true)) {
-        return 'No';
-    }
+    $v = strtolower(trim($v));
+    if (in_array($v, ['yes','y','true','required'], true))     return 'Yes';
+    if (in_array($v, ['no','n','false','not required'], true)) return 'No';
     return 'Unknown';
 }
 
-function parse_money(string $value): ?string
+function parse_money(string $v): ?string
 {
-    $value = clean_import_text($value);
-    if ($value === '') {
-        return null;
-    }
-    if (!preg_match('/(?<![\d,.])\$?\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)\s*([kmb])?(?![\d,.])/i', $value, $matches)) {
-        return null;
-    }
-    $amount = (float)str_replace(',', '', $matches[1]);
-    $multiplier = strtolower($matches[2] ?? '');
-    $amount *= ['k' => 1000, 'm' => 1000000, 'b' => 1000000000][$multiplier] ?? 1;
-    return $amount <= 9999999999.99 ? number_format($amount, 2, '.', '') : null;
+    if ($v === '') return null;
+    if (!preg_match('/\$?\s*([\d,]+(?:\.\d{1,2})?)/', $v, $m)) return null;
+    return str_replace(',', '', $m[1]);
 }
 
-function parse_date_or_null(string $value): ?string
+function parse_date_or_null(string $v): ?string
 {
-    $value = clean_import_text($value);
-    if ($value === '') {
-        return null;
+    if ($v === '') return null;
+    if (preg_match('/^(\d{3,4})-(\d{2})-(\d{2})$/', $v, $m)) {
+        $year = (int)$m[1];
+        if ($year < 1000) {
+            $year += 2000;
+            $v = sprintf('%04d-%02d-%02d', $year, (int)$m[2], (int)$m[3]);
+        }
+    } elseif (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/', $v, $m)) {
+        $year = (int)$m[3];
+        $year += ($year < 50) ? 2000 : 1900;
+        $v = sprintf('%04d-%02d-%02d', $year, (int)$m[1], (int)$m[2]);
     }
-
-    if (preg_match('/^(\d{4}-\d{2}-\d{2})(?:T|\s)/', $value, $matches)) {
-        $value = $matches[1];
-    }
-
-    if (preg_match('/^(\d{1,4})[\/-](\d{1,2})[\/-](\d{1,4})$/', $value, $matches)) {
-        if (strlen($matches[1]) === 4 || (int)$matches[1] > 12) {
-            [$year, $month, $day] = [(int)$matches[1], (int)$matches[2], (int)$matches[3]];
-        } else {
-            [$month, $day, $year] = [(int)$matches[1], (int)$matches[2], (int)$matches[3]];
-        }
-        if ($year < 100) {
-            $year += $year <= 69 ? 2000 : 1900;
-        }
-        if (checkdate($month, $day, $year)) {
-            return sprintf('%04d-%02d-%02d', $year, $month, $day);
-        }
-        return null;
-    }
-
-    foreach (['!F j, Y', '!M j, Y', '!F j Y', '!M j Y'] as $format) {
-        $date = DateTimeImmutable::createFromFormat($format, $value);
-        $errors = DateTimeImmutable::getLastErrors();
-        if ($date !== false
-            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
-            return $date->format('Y-m-d');
-        }
+    foreach (['!Y-m-d','!m/d/Y','!n/j/Y','!Y-m-d H:i:s'] as $fmt) {
+        $d = DateTimeImmutable::createFromFormat($fmt, $v);
+        if ($d) return $d->format('Y-m-d');
     }
     return null;
 }
 
-function format_date_us(?string $value): string
+function parse_grade_range(string $v): array
 {
-    $date = $value === null ? null : parse_date_or_null($value);
-    if ($date === null) {
-        return $value ?? '';
+    if ($v === '') return [];
+    $ids = [];
+    foreach (preg_split('/[,\s]+/', $v) as $tok) {
+        if ($tok === '') continue;
+        if (preg_match('/^(\d{1,2})-(\d{1,2})$/', $tok, $m)) {
+            for ($g = (int)$m[1]; $g <= (int)$m[2]; $g++) $ids[] = $g;
+        } elseif (preg_match('/^\d{1,2}$/', $tok)) {
+            $ids[] = (int)$tok;
+        } elseif (stripos($tok, 'middle') !== false) {
+            $ids = array_merge($ids, [6,7,8]);
+        } elseif (stripos($tok, 'high') !== false) {
+            $ids = array_merge($ids, [9,10,11,12]);
+        }
     }
-    $formattedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-    return $formattedDate === false ? $value : $formattedDate->format('m/d/Y');
+    return array_values(array_unique(array_filter($ids, fn($g) => $g >= 6 && $g <= 12)));
 }
 
-function parse_grade_range(string $value): array
+function format_date_us(?string $date): string
 {
-    $value = mb_strtolower(clean_import_text($value), 'UTF-8');
-    if ($value === '') {
-        return [];
-    }
-
-    $grades = [];
-    if (str_contains($value, 'middle')) {
-        $grades = array_merge($grades, [6, 7, 8]);
-    }
-    if (str_contains($value, 'high school') || preg_match('/\bhigh\b/', $value)) {
-        $grades = array_merge($grades, [9, 10, 11, 12]);
-    }
-    if (preg_match_all('/\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:-|to|through)\s*(?:grade\s*)?(\d{1,2})(?:st|nd|rd|th)?\b/i', $value, $ranges, PREG_SET_ORDER)) {
-        foreach ($ranges as $range) {
-            $start = (int)$range[1];
-            $end = (int)$range[2];
-            if ($start <= $end && $end - $start <= 12) {
-                $grades = array_merge($grades, range($start, $end));
-            }
-        }
-    }
-    if (preg_match_all('/\b(\d{1,2})(?:st|nd|rd|th)?\b/i', $value, $singles)) {
-        foreach ($singles[1] as $grade) {
-            $grades[] = (int)$grade;
-        }
-    }
-
-    $grades = array_filter($grades, static fn(int $grade): bool => $grade >= 6 && $grade <= 12);
-    sort($grades);
-    return array_values(array_unique($grades));
+    if (!$date || $date === '0000-00-00') return '';
+    return date('M j, Y', strtotime($date));
 }
