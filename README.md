@@ -27,6 +27,9 @@ A web application that helps students find scholarship opportunities.
 
 ## Repository Structure
 
+## Data Quality Dashboard
+
+Administrators can open **Admin → Data quality dashboard** to review scholarships with deadlines before today, missing or more than 180-day-old verification dates, missing titles/providers/official URLs, and possible duplicates. Duplicate candidates share a provider and a title after trimming whitespace and ignoring letter case. The dashboard identifies candidates for human review and does not change or remove records.
 
 ## Branching Strategy
 
