@@ -22,6 +22,7 @@ $showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrato
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/faq.php">FAQ</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/contact.php">Contact</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/search.php">Search</a></li>
+         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php">Scholarship Facts</a></li>
         
         <?php if ($showAdmin): ?>
           <li class="nav-item dropdown">
