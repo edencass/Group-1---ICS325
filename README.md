@@ -38,5 +38,3 @@ develop
 feature/*
 bugfix/*
 
-
-New row for demo
