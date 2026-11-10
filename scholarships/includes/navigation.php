@@ -28,6 +28,7 @@ $showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrato
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/scholarships.php">Manage scholarships</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/data_quality.php">Data quality dashboard</a></li>
+              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/coverage_report.php">Coverage Report</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/providers.php">Manage providers</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_stage.php">Stage import</a></li>
