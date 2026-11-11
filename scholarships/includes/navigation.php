@@ -6,7 +6,7 @@ $showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrato
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container-fluid px-4">
     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="<?= e(APP_URL) ?>/public/index.php">
-      <img src="<?= e(APP_URL) ?>/assets/images/scholarship-finder-logo.png"
+      <img src="<?= e(APP_URL) ?>/Images/ScholarshipLogo.png"
            alt="" width="40" height="40">
       <?= e(APP_NAME) ?>
     </a>
