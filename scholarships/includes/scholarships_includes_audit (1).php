@@ -6,7 +6,7 @@ require_once __DIR__ . '/security.php';
 /**
  * Log a lifecycle event for audit tracking.
  * The schema already contains: audit_log(user_id, action, table_name, created_at)
- * Placeholder user is current_user_id(), which is set to 1 in security.php.
+ * The default user is the authenticated user returned by current_user_id().
  */
 function log_audit_event(PDO $pdo, string $action, string $table_name, ?int $userId = null): void
 {

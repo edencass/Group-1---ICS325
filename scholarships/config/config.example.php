@@ -16,7 +16,7 @@ define('DB_CHARSET', 'utf8mb4');
 define('APP_NAME', 'Pathways to Scholarships');
 define('APP_URL',  'http://localhost/scholarships');    //change this if needed
 
-// Development mode: shows the red banner and relaxes auth
+// Development mode: shows a development banner; authentication remains enabled
 define('APP_DEV_MODE', true);
 
 // Set to false in production

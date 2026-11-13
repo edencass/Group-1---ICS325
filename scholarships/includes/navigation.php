@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/security.php';
 $role = current_role();
-$showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrator', 'super-admin'], true);
+$showAdmin = is_logged_in()
+    && in_array(normalized_role($role), ['admin', 'super-admin'], true);
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container-fluid px-4">
@@ -23,7 +24,19 @@ $showAdmin = APP_DEV_MODE || in_array(strtolower($role), ['admin', 'administrato
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/contact.php">Contact</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/search.php">Search</a></li>
          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php">Scholarship Facts</a></li>
-        
+
+        <?php if (is_logged_in()): ?>
+          <li class="nav-item">
+            <form method="post" action="<?= e(APP_URL) ?>/public/logout.php" class="d-flex">
+              <?= csrf_field() ?>
+              <button class="nav-link btn btn-link border-0" type="submit">Log out</button>
+            </form>
+          </li>
+        <?php else: ?>
+          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/login.php">Log in</a></li>
+          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/register.php">Register</a></li>
+        <?php endif; ?>
+
         <?php if ($showAdmin): ?>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button"
