@@ -55,7 +55,6 @@ $sql = '
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-
 $rows = $stmt->fetchAll();
 
 $availableActions = $pdo->query(
