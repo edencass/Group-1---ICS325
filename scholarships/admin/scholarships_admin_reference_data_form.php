@@ -1,224 +1,157 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/scholarships_includes_audit (1).php';
 require_role(['Administrator', 'Super-admin']);
 
+$page_title = 'Reference Data Management';
 $pdo = db();
 
 $entityMap = [
     'states' => [
-        'label' => 'State',
+        'label' => 'States',
         'table' => 'states',
         'id_col' => 'state_id',
         'name_col' => 'state_name',
-        'extra' => [
-            'state_code' => ['label' => 'State Code', 'maxlength' => 2, 'required' => true],
-        ],
+        'sort' => 'state_name',
+        'route' => 'reference_data_form.php',
     ],
     'provider_type' => [
-        'label' => 'Provider Type',
+        'label' => 'Provider Types',
         'table' => 'provider_type',
         'id_col' => 'provider_type_id',
         'name_col' => 'provider_type_name',
-        'extra' => [],
+        'sort' => 'provider_type_name',
+        'route' => 'reference_data_form.php',
     ],
     'categories' => [
-        'label' => 'Category',
+        'label' => 'Categories',
         'table' => 'categories',
         'id_col' => 'category_id',
         'name_col' => 'category_name',
-        'extra' => [],
+        'sort' => 'category_name',
+        'route' => 'reference_data_form.php',
     ],
     'fields_of_study' => [
-        'label' => 'Field of Study',
+        'label' => 'Fields of Study',
         'table' => 'fields_of_study',
         'id_col' => 'field_id',
         'name_col' => 'field_name',
-        'extra' => [],
+        'sort' => 'field_name',
+        'route' => 'reference_data_form.php',
     ],
     'grade_levels' => [
-        'label' => 'Grade Level',
+        'label' => 'Grade Levels',
         'table' => 'grade_levels',
         'id_col' => 'grade_level_id',
         'name_col' => 'grade_name',
-        'extra' => [],
+        'sort' => 'grade_name',
+        'route' => 'reference_data_form.php',
     ],
     'national_themes' => [
-        'label' => 'National Theme',
+        'label' => 'National Themes',
         'table' => 'national_themes',
         'id_col' => 'theme_id',
         'name_col' => 'theme_name',
-        'extra' => [],
+        'sort' => 'theme_name',
+        'route' => 'reference_data_form.php',
     ],
 ];
 
-$entity = $_GET['entity'] ?? $_POST['entity'] ?? 'states';
+$entity = $_GET['entity'] ?? 'states';
 if (!isset($entityMap[$entity])) {
-    http_response_code(404);
-    exit('Invalid reference data group.');
+    $entity = 'states';
 }
 
 $spec = $entityMap[$entity];
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT) ?: (int)($_POST['id'] ?? 0);
-$isNew = ($id <= 0);
+$table = $spec['table'];
+$idCol = $spec['id_col'];
+$nameCol = $spec['name_col'];
+$sort = $spec['sort'];
 
-$page_title = ($isNew ? 'Add ' : 'Edit ') . $spec['label'];
-$pdo = db();
+$rows = $pdo->query(
+    "SELECT * FROM {$table} ORDER BY {$sort}"
+)->fetchAll();
 
-$fields = [
-    $spec['name_col'] => trim((string)($_POST[$spec['name_col']] ?? '')),
-];
-foreach ($spec['extra'] as $col => $meta) {
-    $fields[$col] = trim((string)($_POST[$col] ?? ''));
-}
-
-$errors = [];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify();
-
-    $entityValue = trim((string)($_POST[$spec['name_col']] ?? ''));
-    if ($entityValue === '') {
-        $errors[$spec['name_col']] = ucfirst(str_replace('_', ' ', $spec['name_col'])) . ' is required.';
-    }
-
-    foreach ($spec['extra'] as $col => $meta) {
-        $value = trim((string)($_POST[$col] ?? ''));
-        if (($meta['required'] ?? false) && $value === '') {
-            $errors[$col] = $meta['label'] . ' is required.';
-        }
-        if (!empty($meta['maxlength']) && mb_strlen($value) > (int)$meta['maxlength']) {
-            $errors[$col] = $meta['label'] . ' must be ' . (int)$meta['maxlength'] . ' characters or fewer.';
-        }
-    }
-
-    if (!$errors) {
-        $columns = [];
-        $placeholders = [];
-        $values = [];
-
-        $columns[] = $spec['name_col'];
-        $placeholders[] = '?';
-        $values[] = $entityValue;
-
-        foreach ($spec['extra'] as $col => $meta) {
-            $columns[] = $col;
-            $placeholders[] = '?';
-            $values[] = trim((string)($_POST[$col] ?? ''));
-        }
-
-        if ($isNew) {
-            $sql = 'INSERT INTO ' . $spec['table'] . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($values);
-            log_audit_event($pdo, 'create_reference_data', $spec['table'], current_user_id());
-            $_SESSION['flash_success'] = ucfirst($spec['label']) . ' created.';
-        } else {
-            $sql = 'UPDATE ' . $spec['table'] .
-                   ' SET ' . $spec['name_col'] . ' = ?';
-            $params = [$entityValue];
-
-            foreach ($spec['extra'] as $col => $meta) {
-                $sql .= ', ' . $col . ' = ?';
-                $params[] = trim((string)($_POST[$col] ?? ''));
-            }
-
-            $sql .= ' WHERE ' . $spec['id_col'] . ' = ?';
-            $params[] = $id;
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            log_audit_event($pdo, 'update_reference_data', $spec['table'], current_user_id());
-            $_SESSION['flash_success'] = ucfirst($spec['label']) . ' updated.';
-        }
-
-        header('Location: ' . APP_URL . '/admin/reference_data.php?entity=' . urlencode($entity));
-        exit;
-    }
-}
-
-if (!$isNew) {
-    $stmt = $pdo->prepare('SELECT * FROM ' . $spec['table'] . ' WHERE ' . $spec['id_col'] . ' = ?');
-    $stmt->execute([$id]);
-    $row = $stmt->fetch();
-    if (!$row) {
-        http_response_code(404);
-        exit('Record not found.');
-    }
-
-    $fields[$spec['name_col']] = (string)($row[$spec['name_col']] ?? '');
-    foreach ($spec['extra'] as $col => $meta) {
-        $fields[$col] = (string)($row[$col] ?? '');
-    }
+$summary = [];
+foreach ($entityMap as $key => $cfg) {
+    $count = $pdo->query("SELECT COUNT(*) FROM {$cfg['table']}")->fetchColumn();
+    $summary[$key] = [
+        'label' => $cfg['label'],
+        'count' => (int)$count,
+    ];
 }
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
-    <h1 class="h3 mb-1"><?= e($isNew ? 'Add' : 'Edit') ?> <?= e($spec['label']) ?></h1>
-    <p class="text-muted mb-0">Manage a reference value used by the application.</p>
+    <h1 class="h3 mb-1">Reference Data Management</h1>
+    <p class="text-muted mb-0">Maintain lookup values used throughout the scholarship system.</p>
   </div>
-  <a class="btn btn-outline-secondary" href="<?= e(APP_URL) ?>/admin/reference_data.php?entity=<?= e($entity) ?>">Back</a>
+  <a class="btn btn-primary" href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">Add new</a>
 </div>
 
-<?php if ($errors): ?>
-  <div class="alert alert-danger">
-    <ul class="mb-0">
-      <?php foreach ($errors as $error): ?>
-        <li><?= e($error) ?></li>
-      <?php endforeach; ?>
-    </ul>
-  </div>
-<?php endif; ?>
-
-<form method="post" action="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?><?= $isNew ? '' : '&id=' . (int)$id ?>">
-  <?= csrf_field() ?>
-  <input type="hidden" name="entity" value="<?= e($entity) ?>">
-  <?php if (!$isNew): ?>
-    <input type="hidden" name="id" value="<?= (int)$id ?>">
-  <?php endif; ?>
-
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label for="<?= e($spec['name_col']) ?>" class="form-label">
-            <?= e(ucfirst(str_replace('_', ' ', $spec['name_col']))) ?>
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            id="<?= e($spec['name_col']) ?>"
-            name="<?= e($spec['name_col']) ?>"
-            value="<?= e($fields[$spec['name_col']] ?? '') ?>"
-            maxlength="255"
-            required
-          >
+<div class="row g-3 mb-4">
+  <?php foreach ($summary as $key => $item): ?>
+    <div class="col-sm-6 col-md-4 col-xl-3">
+      <a class="card h-100 text-decoration-none <?= $key === $entity ? 'border-primary' : '' ?>"
+         href="<?= e(APP_URL) ?>/admin/reference_data.php?entity=<?= e($key) ?>">
+        <div class="card-body">
+          <div class="small text-muted"><?= e($item['label']) ?></div>
+          <div class="display-6 fw-semibold"><?= (int)$item['count'] ?></div>
         </div>
-
-        <?php foreach ($spec['extra'] as $col => $meta): ?>
-          <div class="col-md-6">
-            <label for="<?= e($col) ?>" class="form-label"><?= e($meta['label']) ?></label>
-            <input
-              type="text"
-              class="form-control"
-              id="<?= e($col) ?>"
-              name="<?= e($col) ?>"
-              value="<?= e($fields[$col] ?? '') ?>"
-              maxlength="<?= (int)($meta['maxlength'] ?? 255) ?>"
-              <?= !empty($meta['required']) ? 'required' : '' ?>
-            >
-          </div>
-        <?php endforeach; ?>
-      </div>
+      </a>
     </div>
-    <div class="card-footer d-flex justify-content-end gap-2">
-      <a class="btn btn-outline-secondary" href="<?= e(APP_URL) ?>/admin/reference_data.php?entity=<?= e($entity) ?>">Cancel</a>
-      <button type="submit" class="btn btn-primary"><?= e($isNew ? 'Create' : 'Update') ?></button>
+  <?php endforeach; ?>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0"><?= e($spec['label']) ?></h2>
+    <a class="btn btn-sm btn-outline-primary" href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">
+      Add new
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if ($rows): ?>
+            <?php foreach ($rows as $row): ?>
+              <tr>
+                <td><?= (int)$row[$idCol] ?></td>
+                <td><?= e((string)($row[$nameCol] ?? '')) ?></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>&id=<?= (int)$row[$idCol] ?>">
+                    Edit
+                  </a>
+                  <form class="d-inline" method="post" action="<?= e(APP_URL) ?>/admin/reference_data_delete.php"
+                        onsubmit="return confirm('Delete this reference value?');">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="entity" value="<?= e($entity) ?>">
+                    <input type="hidden" name="id" value="<?= (int)$row[$idCol] ?>">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="3" class="text-muted text-center py-4">No records found.</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
   </div>
-</form>
+</div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
