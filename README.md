@@ -37,6 +37,9 @@ Visitors can register as a Student or Parent using the registration page. Passwo
 are hashed with PHP's `password_hash()`. Log in to start a session; sessions rotate
 their ID on login and expire after the configured `SESSION_TIMEOUT` of inactivity.
 Admin, import, and data-quality pages require an Administrator or Super-admin role.
+Signed-in users can reach their profile and password settings from the navigation;
+the Admin menu is shown only to Administrators and Super-admins. Visitors see links
+to log in or register instead of account actions.
 
 ## Branching Strategy
 

@@ -17,6 +17,5 @@ require_once __DIR__ . '/security.php';
     <?= $extra_head_html ?? '' ?>
 </head>
 <body>
-<?php include __DIR__ . '/dev_banner.php'; ?>
 <?php include __DIR__ . '/navigation.php'; ?>
 <main class="container py-4">
