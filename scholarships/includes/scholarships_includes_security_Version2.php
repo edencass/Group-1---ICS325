@@ -1,28 +1,48 @@
 <?php
-if (!defined('APP_URL')) {
-    require_once __DIR__ . '/../config/config.php';
-}
+/**
+ * security.php — output escaping, CSRF, session, and access-control helpers.
+ * Safe to require_once from any file. Idempotent.
+ */
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    $cookie = session_get_cookie_params();
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => $cookie['path'],
+        'domain' => $cookie['domain'],
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
-}
 
-function normalize_role_name(?string $value): string
-{
-    if ($value === null) {
-        return '';
+    $timeout = defined('SESSION_TIMEOUT') ? (int) SESSION_TIMEOUT : 1800;
+    if (isset($_SESSION['user_id'])) {
+        $lastActivity = filter_var($_SESSION['last_activity'] ?? null, FILTER_VALIDATE_INT);
+        if ($timeout <= 0 || $lastActivity === false || time() - $lastActivity >= $timeout) {
+            $_SESSION = [];
+            if (!session_regenerate_id(true)) {
+                throw new RuntimeException('Unable to rotate the expired session ID.');
+            }
+            $_SESSION['session_expired'] = true;
+        } else {
+            $_SESSION['last_activity'] = time();
+        }
     }
-
-    $value = strtolower(trim($value));
-    $value = str_replace(['-', '_'], ' ', $value);
-    $value = preg_replace('/\s+/', ' ', $value) ?? $value;
-    return trim($value);
 }
 
+/** Escape any value before printing it into HTML. */
 function e(?string $value): string
 {
     return htmlspecialchars($value ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+/* --------- CSRF --------- */
 
 function csrf_token(): string
 {
@@ -46,44 +66,95 @@ function csrf_verify(): void
     }
 }
 
-function current_user_id(): ?int
-{
-    return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
-}
+/* --------- Authentication and access control --------- */
 
-function current_role(): string
+function normalized_role(string $role): string
 {
-    return (string)($_SESSION['role_name'] ?? 'Visitor');
-}
-
-function is_logged_in(): bool
-{
-    return current_user_id() !== null && current_role() !== '';
-}
-
-function require_auth(): void
-{
-    if (!is_logged_in()) {
-        $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? APP_URL . '/public/index.php';
-        header('Location: ' . APP_URL . '/public/login.php');
-        exit;
-    }
+    $role = strtolower(str_replace(['_', ' '], '-', trim($role)));
+    return match ($role) {
+        'administrator' => 'admin',
+        'superadmin' => 'super-admin',
+        default => $role,
+    };
 }
 
 function require_role(array $roles): void
 {
-    require_auth();
-
-    $allowed = array_map(
-        static fn($role) => normalize_role_name((string)$role),
-        $roles
-    );
-
-    $current = normalize_role_name(current_role());
-
-    if (!in_array($current, $allowed, true)) {
-        http_response_code(403);
-        echo '<h1>Forbidden</h1><p>You do not have permission to view this page.</p>';
+    if (!is_logged_in()) {
+        $loginUrl = (defined('APP_URL') ? rtrim(APP_URL, '/') : '') . '/public/login.php';
+        header('Location: ' . $loginUrl, true, 302);
         exit;
+    }
+
+    $currentRole = normalized_role(current_role());
+    foreach ($roles as $role) {
+        if (is_string($role) && normalized_role($role) === $currentRole) {
+            return;
+        }
+    }
+
+    http_response_code(403);
+    exit('You do not have permission to access this page.');
+}
+
+function current_user_id(): ?int
+{
+    if (!is_logged_in()) {
+        return null;
+    }
+
+    $userId = filter_var($_SESSION['user_id'], FILTER_VALIDATE_INT);
+    return $userId !== false && $userId > 0 ? $userId : null;
+}
+
+function current_role(): string
+{
+    return is_logged_in() && is_string($_SESSION['role_name'] ?? null)
+        ? $_SESSION['role_name']
+        : 'Visitor';
+}
+
+function is_logged_in(): bool
+{
+    $userId = filter_var($_SESSION['user_id'] ?? null, FILTER_VALIDATE_INT);
+    return $userId !== false && $userId > 0
+        && is_string($_SESSION['role_name'] ?? null)
+        && $_SESSION['role_name'] !== '';
+}
+
+function login_user(int $userId, string $roleName): void
+{
+    if ($userId <= 0 || trim($roleName) === '') {
+        throw new InvalidArgumentException('A valid user ID and role are required to start a session.');
+    }
+    if (!session_regenerate_id(true)) {
+        throw new RuntimeException('Unable to rotate the session ID during login.');
+    }
+
+    $_SESSION = [
+        'user_id' => $userId,
+        'role_name' => $roleName,
+        'last_activity' => time(),
+    ];
+}
+
+function logout_user(): void
+{
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $cookie = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires' => time() - 42000,
+            'path' => $cookie['path'],
+            'domain' => $cookie['domain'],
+            'secure' => $cookie['secure'],
+            'httponly' => $cookie['httponly'],
+            'samesite' => $cookie['samesite'] ?? 'Lax',
+        ]);
+    }
+
+    if (!session_destroy()) {
+        throw new RuntimeException('Unable to destroy the current session.');
     }
 }
