@@ -53,7 +53,7 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/coverage_report.php">Coverage Report</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/providers.php">Manage providers</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/reference_data.php">Reference data</a></li>
-              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/audit_log.php">Audit log</a></li>
+              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/audit.php">Audit log</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_stage.php">Stage import</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_report.php">Validation report</a></li>
