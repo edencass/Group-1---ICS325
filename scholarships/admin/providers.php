@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/scholarships_includes_audit (1).php';
+require_once __DIR__ . '/../includes/scholarships_includes_audit.php';
 require_role(['Administrator', 'Super-admin']);
 
 $page_title = 'Provider Management';
