@@ -19,40 +19,31 @@ if ($actionFilter !== '') {
     $where[] = 'al.action = ?';
     $params[] = $actionFilter;
 }
-
 if ($tableFilter !== '') {
     $where[] = 'al.table_name = ?';
     $params[] = $tableFilter;
 }
-
 if ($userFilter !== '') {
     $where[] = 'u.email = ?';
     $params[] = $userFilter;
 }
-
 if ($startDate !== '') {
     $where[] = 'DATE(al.created_at) >= ?';
     $params[] = $startDate;
 }
-
 if ($endDate !== '') {
     $where[] = 'DATE(al.created_at) <= ?';
     $params[] = $endDate;
 }
 
 $sql = '
-    SELECT
-        al.audit_id,
-        al.action,
-        al.table_name,
-        al.created_at,
-        u.email AS user_email
+    SELECT al.audit_id, al.action, al.table_name, al.created_at,
+           u.email AS user_email
     FROM audit_log al
     LEFT JOIN users u ON u.user_id = al.user_id
     WHERE ' . implode(' AND ', $where) . '
     ORDER BY al.created_at DESC
 ';
-
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll();
@@ -60,11 +51,9 @@ $rows = $stmt->fetchAll();
 $availableActions = $pdo->query(
     'SELECT DISTINCT action FROM audit_log ORDER BY action'
 )->fetchAll();
-
 $availableTables = $pdo->query(
     'SELECT DISTINCT table_name FROM audit_log ORDER BY table_name'
 )->fetchAll();
-
 $availableUsers = $pdo->query(
     'SELECT DISTINCT u.email
      FROM audit_log al
@@ -82,7 +71,8 @@ require_once __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<form method="get" class="card shadow-sm mb-4">
+<form method="get" action="<?= e(APP_URL) ?>/admin/reference_data_and_audit_log.php" class="card shadow-sm mb-4">
+  <input type="hidden" name="view" value="audit">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-3">
@@ -90,71 +80,50 @@ require_once __DIR__ . '/../includes/header.php';
         <select class="form-select" id="action" name="action">
           <option value="">All actions</option>
           <?php foreach ($availableActions as $row): ?>
-            <option value="<?= e($row['action']) ?>" <?= $actionFilter === $row['action'] ? 'selected' : '' ?>>
-              <?= e($row['action']) ?>
-            </option>
+            <option value="<?= e($row['action']) ?>" <?= $actionFilter === $row['action'] ? 'selected' : '' ?>><?= e($row['action']) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
-
       <div class="col-md-3">
         <label class="form-label" for="table">Table</label>
         <select class="form-select" id="table" name="table">
           <option value="">All tables</option>
           <?php foreach ($availableTables as $row): ?>
-            <option value="<?= e($row['table_name']) ?>" <?= $tableFilter === $row['table_name'] ? 'selected' : '' ?>>
-              <?= e($row['table_name']) ?>
-            </option>
+            <option value="<?= e($row['table_name']) ?>" <?= $tableFilter === $row['table_name'] ? 'selected' : '' ?>><?= e($row['table_name']) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
-
       <div class="col-md-3">
         <label class="form-label" for="user">User</label>
         <select class="form-select" id="user" name="user">
           <option value="">All users</option>
           <?php foreach ($availableUsers as $row): ?>
-            <option value="<?= e($row['email']) ?>" <?= $userFilter === $row['email'] ? 'selected' : '' ?>>
-              <?= e($row['email']) ?>
-            </option>
+            <option value="<?= e($row['email']) ?>" <?= $userFilter === $row['email'] ? 'selected' : '' ?>><?= e($row['email']) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
-
       <div class="col-md-3">
         <label class="form-label" for="start_date">From</label>
         <input type="date" class="form-control" id="start_date" name="start_date" value="<?= e($startDate) ?>">
       </div>
-
       <div class="col-md-3">
         <label class="form-label" for="end_date">To</label>
         <input type="date" class="form-control" id="end_date" name="end_date" value="<?= e($endDate) ?>">
       </div>
     </div>
-
     <div class="d-flex justify-content-end mt-3">
-      <a class="btn btn-outline-secondary me-2" href="<?= e(APP_URL) ?>/admin/audit_log.php">Clear filters</a>
+      <a class="btn btn-outline-secondary me-2" href="<?= e(APP_URL) ?>/admin/reference_data_and_audit_log.php?view=audit">Clear filters</a>
       <button type="submit" class="btn btn-primary">Apply filters</button>
     </div>
   </div>
 </form>
 
 <div class="card shadow-sm">
-  <div class="card-header">
-    <h2 class="h5 mb-0">Audit entries</h2>
-  </div>
+  <div class="card-header"><h2 class="h5 mb-0">Audit entries</h2></div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-striped table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Action</th>
-            <th>Table</th>
-            <th>User</th>
-            <th>Created</th>
-          </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Action</th><th>Table</th><th>User</th><th>Created</th></tr></thead>
         <tbody>
           <?php if ($rows): ?>
             <?php foreach ($rows as $row): ?>
@@ -167,14 +136,11 @@ require_once __DIR__ . '/../includes/header.php';
               </tr>
             <?php endforeach; ?>
           <?php else: ?>
-            <tr>
-              <td colspan="5" class="text-center text-muted py-4">No audit activity matches your filters.</td>
-            </tr>
+            <tr><td colspan="5" class="text-center text-muted py-4">No audit activity matches your filters.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
     </div>
   </div>
 </div>
-
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
