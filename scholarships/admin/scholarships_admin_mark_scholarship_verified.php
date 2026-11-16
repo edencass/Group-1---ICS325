@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/scholarships_admin_audit_log.php';
+require_once __DIR__ . '/../includes/audit.php';
 require_role(['Administrator', 'Super-admin']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
