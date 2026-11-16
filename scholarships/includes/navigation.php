@@ -23,14 +23,14 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/faq.php">FAQ</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/contact.php">Contact</a></li>
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/search.php">Search</a></li>
-         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php">Scholarship Facts</a></li>
+        <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php">Scholarship Facts</a></li>
 
         <?php if ($isLoggedIn): ?>
           <li class="nav-item">
-            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php">My profile</a>
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php">My Profile</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="<?= e(APP_URL) ?>/public/change_password.php">Change password</a>
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/change_password.php">Change Password</a>
           </li>
           <li class="nav-item">
             <form method="post" action="<?= e(APP_URL) ?>/public/logout.php" class="d-flex">
@@ -52,9 +52,16 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/data_quality.php">Data quality dashboard</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/coverage_report.php">Coverage Report</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/providers.php">Manage providers</a></li>
+              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/reference_data.php">Reference data</a></li>
+              <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/audit_log.php">Audit log</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_stage.php">Stage import</a></li>
               <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/import_report.php">Validation report</a></li>
+              
+              <?php if ($normalizedRole === 'super-admin'): ?>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="<?= e(APP_URL) ?>/admin/users.php">User Management</a></li>
+              <?php endif; ?>
             </ul>
           </li>
         <?php endif; ?>
