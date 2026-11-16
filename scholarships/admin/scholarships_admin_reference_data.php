@@ -13,7 +13,6 @@ $entityMap = [
         'id_col' => 'state_id',
         'name_col' => 'state_name',
         'sort' => 'state_name',
-        'route' => 'reference_data_form.php',
     ],
     'provider_type' => [
         'label' => 'Provider Types',
@@ -21,7 +20,6 @@ $entityMap = [
         'id_col' => 'provider_type_id',
         'name_col' => 'provider_type_name',
         'sort' => 'provider_type_name',
-        'route' => 'reference_data_form.php',
     ],
     'categories' => [
         'label' => 'Categories',
@@ -29,7 +27,6 @@ $entityMap = [
         'id_col' => 'category_id',
         'name_col' => 'category_name',
         'sort' => 'category_name',
-        'route' => 'reference_data_form.php',
     ],
     'fields_of_study' => [
         'label' => 'Fields of Study',
@@ -37,7 +34,6 @@ $entityMap = [
         'id_col' => 'field_id',
         'name_col' => 'field_name',
         'sort' => 'field_name',
-        'route' => 'reference_data_form.php',
     ],
     'grade_levels' => [
         'label' => 'Grade Levels',
@@ -45,7 +41,6 @@ $entityMap = [
         'id_col' => 'grade_level_id',
         'name_col' => 'grade_name',
         'sort' => 'grade_name',
-        'route' => 'reference_data_form.php',
     ],
     'national_themes' => [
         'label' => 'National Themes',
@@ -53,26 +48,20 @@ $entityMap = [
         'id_col' => 'theme_id',
         'name_col' => 'theme_name',
         'sort' => 'theme_name',
-        'route' => 'reference_data_form.php',
     ],
 ];
 
-$entity = $_GET['entity'] ?? 'states';
+$entity = (string)($_GET['entity'] ?? 'states');
 if (!isset($entityMap[$entity])) {
     $entity = 'states';
 }
 
 $spec = $entityMap[$entity];
-$table = $spec['table'];
-$idCol = $spec['id_col'];
-$nameCol = $spec['name_col'];
-$sort = $spec['sort'];
 
 $rows = $pdo->query(
-    "SELECT * FROM {$table} ORDER BY {$sort}"
+    "SELECT * FROM {$spec['table']} ORDER BY {$spec['sort']}"
 )->fetchAll();
 
-// Count summary for all reference tables
 $summary = [];
 foreach ($entityMap as $key => $cfg) {
     $count = $pdo->query("SELECT COUNT(*) FROM {$cfg['table']}")->fetchColumn();
@@ -82,21 +71,36 @@ foreach ($entityMap as $key => $cfg) {
     ];
 }
 
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
     <h1 class="h3 mb-1">Reference Data Management</h1>
     <p class="text-muted mb-0">Maintain lookup values used throughout the scholarship system.</p>
   </div>
-  <a class="btn btn-primary" href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">Add new</a>
+  <a class="btn btn-primary"
+     href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">
+    Add new
+  </a>
 </div>
+
+<?php if ($flashSuccess): ?>
+  <div class="alert alert-success"><?= e($flashSuccess) ?></div>
+<?php endif; ?>
+<?php if ($flashError): ?>
+  <div class="alert alert-danger"><?= e($flashError) ?></div>
+<?php endif; ?>
 
 <div class="row g-3 mb-4">
   <?php foreach ($summary as $key => $item): ?>
     <div class="col-sm-6 col-md-4 col-xl-3">
       <a class="card h-100 text-decoration-none <?= $key === $entity ? 'border-primary' : '' ?>"
-         href="<?= e(APP_URL) ?>/admin/reference_data.php?entity=<?= e($key) ?>">
+         href="<?= e(APP_URL) ?>/admin/scholarships_admin_reference_data.php?entity=<?= e($key) ?>">
         <div class="card-body">
           <div class="small text-muted"><?= e($item['label']) ?></div>
           <div class="display-6 fw-semibold"><?= (int)$item['count'] ?></div>
@@ -109,7 +113,8 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h2 class="h5 mb-0"><?= e($spec['label']) ?></h2>
-    <a class="btn btn-sm btn-outline-primary" href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">
+    <a class="btn btn-sm btn-outline-primary"
+       href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>">
       Add new
     </a>
   </div>
@@ -126,14 +131,24 @@ require_once __DIR__ . '/../includes/header.php';
         <tbody>
           <?php if ($rows): ?>
             <?php foreach ($rows as $row): ?>
+              <?php $id = (int)$row[$spec['id_col']]; ?>
               <tr>
-                <td><?= (int)$row[$idCol] ?></td>
-                <td><?= e((string)($row[$nameCol] ?? '')) ?></td>
+                <td><?= $id ?></td>
+                <td><?= e((string)($row[$spec['name_col']] ?? '')) ?></td>
                 <td class="text-end">
                   <a class="btn btn-sm btn-outline-primary"
-                     href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>&id=<?= (int)$row[$idCol] ?>">
+                     href="<?= e(APP_URL) ?>/admin/reference_data_form.php?entity=<?= e($entity) ?>&amp;id=<?= $id ?>">
                     Edit
                   </a>
+
+                  <form class="d-inline" method="post"
+                        action="<?= e(APP_URL) ?>/admin/reference_data_delete.php"
+                        onsubmit="return confirm('Delete this reference value?');">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="entity" value="<?= e($entity) ?>">
+                    <input type="hidden" name="id" value="<?= $id ?>">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                  </form>
                 </td>
               </tr>
             <?php endforeach; ?>
