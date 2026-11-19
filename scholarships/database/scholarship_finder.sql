@@ -1,5 +1,4 @@
 CREATE DATABASE IF NOT EXISTS scholarship_finder;
-
 USE scholarship_finder;
 
 -- 1 ROLES
@@ -14,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     role_id INT NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,  -- ADDED FOR ITERATION 7
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_users_role
