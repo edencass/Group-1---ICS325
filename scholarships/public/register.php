@@ -26,10 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? $passwordConfirmationValue
         : '';
 
-    if (!preg_match('/\A.{1,100}\z/us', $firstName)) {
+    if ($roleName === 'Student' && !preg_match('/\A.{1,100}\z/us', $firstName)) {
         $errors[] = 'First name is required and must be 100 characters or fewer.';
     }
-    if (!preg_match('/\A.{1,100}\z/us', $lastName)) {
+    if ($roleName === 'Student' && !preg_match('/\A.{1,100}\z/us', $lastName)) {
         $errors[] = 'Last name is required and must be 100 characters or fewer.';
     }
     if (strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -71,10 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $userId = (int) $pdo->lastInsertId();
 
-                $insertProfile = $pdo->prepare(
-                    'INSERT INTO profiles (user_id, first_name, last_name) VALUES (?, ?, ?)'
-                );
-                $insertProfile->execute([$userId, $firstName, $lastName]);
+                if ($roleName === 'Student') {
+                    $insertProfile = $pdo->prepare(
+                        'INSERT INTO profiles (user_id, first_name, last_name) VALUES (?, ?, ?)'
+                    );
+                    $insertProfile->execute([$userId, $firstName, $lastName]);
+                }
                 $pdo->commit();
 
                 header('Location: ' . APP_URL . '/public/login.php?registered=1', true, 303);
@@ -106,15 +108,14 @@ require_once __DIR__ . '/../includes/header.php';
 
 <form method="post" class="row g-3" id="registration-form">
   <?= csrf_field() ?>
-  <div class="col-md-6">
-    <label class="form-label" for="first_name">First name</label>
-    <input class="form-control" id="first_name" name="first_name" required maxlength="100"
+  <div class="col-md-6" id="studentNameFields">
+    <label class="form-label" for="first_name">Student first name</label>
+    <input class="form-control" id="first_name" name="first_name" maxlength="100"
            autocomplete="given-name" value="<?= e($firstName) ?>">
-  </div>
-  <div class="col-md-6">
-    <label class="form-label" for="last_name">Last name</label>
-    <input class="form-control" id="last_name" name="last_name" required maxlength="100"
+    <label class="form-label mt-3" for="last_name">Student last name</label>
+    <input class="form-control" id="last_name" name="last_name" maxlength="100"
            autocomplete="family-name" value="<?= e($lastName) ?>">
+    <div class="form-text">Parent accounts add student names in profile management after registration.</div>
   </div>
   <div class="col-md-6">
     <label class="form-label" for="email">Email</label>
@@ -150,6 +151,20 @@ require_once __DIR__ . '/../includes/header.php';
   const form = document.getElementById('registration-form');
   const password = document.getElementById('password');
   const confirmation = document.getElementById('password_confirmation');
+  const role = document.getElementById('role');
+  const studentNameFields = document.getElementById('studentNameFields');
+  const studentNames = [
+    document.getElementById('first_name'),
+    document.getElementById('last_name')
+  ];
+  const updateStudentFields = () => {
+    const isStudent = role.value === 'Student';
+    studentNameFields.hidden = !isStudent;
+    studentNames.forEach((field) => {
+      field.required = isStudent;
+      field.disabled = !isStudent;
+    });
+  };
   const validateConfirmation = () => {
     confirmation.setCustomValidity(
       confirmation.value === password.value ? '' : 'Passwords do not match.'
@@ -158,6 +173,8 @@ require_once __DIR__ . '/../includes/header.php';
   password.addEventListener('input', validateConfirmation);
   confirmation.addEventListener('input', validateConfirmation);
   form.addEventListener('submit', validateConfirmation);
+  role.addEventListener('change', updateStudentFields);
+  updateStudentFields();
 })();
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
