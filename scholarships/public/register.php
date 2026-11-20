@@ -115,7 +115,6 @@ require_once __DIR__ . '/../includes/header.php';
     <label class="form-label mt-3" for="last_name">Student last name</label>
     <input class="form-control" id="last_name" name="last_name" maxlength="100"
            autocomplete="family-name" value="<?= e($lastName) ?>">
-    <div class="form-text">Parent accounts add student names in profile management after registration.</div>
   </div>
   <div class="col-md-6">
     <label class="form-label" for="email">Email</label>
@@ -128,6 +127,7 @@ require_once __DIR__ . '/../includes/header.php';
       <option value="Student"<?= $roleName === 'Student' ? ' selected' : '' ?>>Student</option>
       <option value="Parent"<?= $roleName === 'Parent' ? ' selected' : '' ?>>Parent</option>
     </select>
+    <div class="form-text">After registering and signing in, parents can create or link student accounts from Manage students.</div>
   </div>
   <div class="col-md-6">
     <label class="form-label" for="password">Password</label>

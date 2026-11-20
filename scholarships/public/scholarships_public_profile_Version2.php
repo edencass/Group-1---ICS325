@@ -29,40 +29,94 @@ if (!$user) {
     exit('User account not found.');
 }
 
-$profilesStmt = $pdo->prepare(
-    'SELECT profile_id, first_name, last_name, grade_level, gpa, state_id
-       FROM profiles
-      WHERE user_id = ?
-      ORDER BY profile_id'
-);
-$profilesStmt->execute([$userId]);
-$profiles = $profilesStmt->fetchAll();
+$students = [];
+$studentsById = [];
+$profiles = [];
 $profileById = [];
-foreach ($profiles as $savedProfile) {
-    $profileById[(int)$savedProfile['profile_id']] = $savedProfile;
+
+if ($isParent) {
+    $studentsStmt = $pdo->prepare(
+        "SELECT u.user_id AS student_user_id,
+                u.email,
+                psr.relationship_type,
+                p.profile_id,
+                p.first_name,
+                p.last_name,
+                p.grade_level,
+                p.gpa,
+                p.state_id
+           FROM parent_student_relationships psr
+           JOIN users u
+             ON u.user_id = psr.student_user_id
+           JOIN roles r
+             ON r.role_id = u.role_id
+           LEFT JOIN profiles p
+             ON p.profile_id = (
+                 SELECT MIN(p2.profile_id)
+                   FROM profiles p2
+                  WHERE p2.user_id = u.user_id
+             )
+          WHERE psr.parent_user_id = ?
+            AND u.is_active = 1
+            AND r.role_name = 'Student'
+          ORDER BY p.first_name, p.last_name, u.email"
+    );
+    $studentsStmt->execute([$userId]);
+    $students = $studentsStmt->fetchAll();
+    foreach ($students as $student) {
+        $studentsById[(int)$student['student_user_id']] = $student;
+    }
+} else {
+    $profilesStmt = $pdo->prepare(
+        'SELECT profile_id, user_id, first_name, last_name, grade_level, gpa, state_id
+           FROM profiles
+          WHERE user_id = ?
+          ORDER BY profile_id'
+    );
+    $profilesStmt->execute([$userId]);
+    $profiles = $profilesStmt->fetchAll();
+    foreach ($profiles as $savedProfile) {
+        $profileById[(int)$savedProfile['profile_id']] = $savedProfile;
+    }
 }
 
 $requestedProfileId = filter_var($_GET['profile_id'] ?? null, FILTER_VALIDATE_INT);
-$isNewProfile = $isParent && isset($_GET['new']) && $_GET['new'] === '1';
 $selectedProfileId = $requestedProfileId !== false && $requestedProfileId !== null
     ? (int)$requestedProfileId
+    : null;
+$requestedStudentUserId = filter_var($_GET['student_user_id'] ?? null, FILTER_VALIDATE_INT);
+$selectedStudentUserId = $requestedStudentUserId !== false && $requestedStudentUserId !== null
+    ? (int)$requestedStudentUserId
     : null;
 $profile = null;
 $errors = [];
 
-if ($isParent && $selectedProfileId !== null) {
-    $profile = $profileById[$selectedProfileId] ?? null;
+if ($isParent && $selectedStudentUserId !== null) {
+    $profile = $studentsById[$selectedStudentUserId] ?? null;
     if (!$profile) {
         http_response_code(404);
-        exit('Student profile not found.');
+        exit('Linked student account not found.');
     }
-} elseif (!$isNewProfile && $profiles) {
+    $selectedProfileId = $profile['profile_id'] !== null
+        ? (int)$profile['profile_id']
+        : null;
+} elseif ($isParent && $students) {
+    $profile = $students[0];
+    $selectedStudentUserId = (int)$profile['student_user_id'];
+    $selectedProfileId = $profile['profile_id'] !== null
+        ? (int)$profile['profile_id']
+        : null;
+} elseif (!$isParent && $profiles) {
     $profile = $profiles[0];
     $selectedProfileId = (int)$profile['profile_id'];
 }
 
 if ($profile === null) {
     $profile = [
+        'user_id' => $userId,
+        'student_user_id' => null,
+        'email' => '',
+        'relationship_type' => '',
         'profile_id' => null,
         'first_name' => '',
         'last_name' => '',
@@ -91,56 +145,184 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedProfileId = $postedProfileId !== false && $postedProfileId !== null
         ? (int)$postedProfileId
         : null;
+    $postedStudentUserId = filter_var($_POST['student_user_id'] ?? null, FILTER_VALIDATE_INT);
+    $postedStudentUserId = $postedStudentUserId !== false && $postedStudentUserId !== null
+        ? (int)$postedStudentUserId
+        : null;
 
-    if ($action === 'delete') {
-        if (!$isParent || !$postedProfileId || !isset($profileById[$postedProfileId])) {
-            http_response_code(403);
-            exit('You do not have permission to delete this profile.');
+    if ($isParent && $action === 'create_student') {
+        $firstName = trim((string)($_POST['first_name'] ?? ''));
+        $lastName = trim((string)($_POST['last_name'] ?? ''));
+        $studentEmail = strtolower(trim((string)($_POST['student_email'] ?? '')));
+        $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+        $passwordConfirmation = is_string($_POST['password_confirmation'] ?? null)
+            ? $_POST['password_confirmation']
+            : '';
+        $relationshipType = is_string($_POST['relationship_type'] ?? null)
+            ? $_POST['relationship_type']
+            : '';
+
+        if (!preg_match('/\A.{1,100}\z/us', $firstName)) {
+            $errors[] = 'First name is required and must be 100 characters or fewer.';
+        }
+        if (!preg_match('/\A.{1,100}\z/us', $lastName)) {
+            $errors[] = 'Last name is required and must be 100 characters or fewer.';
+        }
+        if (strlen($studentEmail) > 255 || !filter_var($studentEmail, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Enter a valid student email address (255 characters or fewer).';
+        }
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            $errors[] = 'Student password must be between 8 and 72 bytes.';
+        }
+        if ($password !== $passwordConfirmation) {
+            $errors[] = 'Student password confirmation does not match.';
+        }
+        if (!in_array($relationshipType, ['Parent', 'Guardian', 'Grandparent', 'Other'], true)) {
+            $errors[] = 'Choose a valid relationship to the student.';
         }
 
-        try {
-            $pdo->beginTransaction();
-            $pdo->prepare('DELETE FROM profile_interests WHERE profile_id = ?')
-                ->execute([$postedProfileId]);
-            $deleteProfile = $pdo->prepare(
-                'DELETE FROM profiles WHERE profile_id = ? AND user_id = ?'
-            );
-            $deleteProfile->execute([$postedProfileId, $userId]);
-            if ($deleteProfile->rowCount() !== 1) {
-                throw new RuntimeException('The student profile was not deleted.');
-            }
-            $pdo->commit();
-            $_SESSION['profile_success'] = 'Student profile deleted.';
-            header('Location: ' . APP_URL . '/public/profile.php', true, 303);
-            exit;
-        } catch (Throwable $exception) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log('Student profile deletion failed: ' . $exception->getMessage());
-            $errors[] = 'The student profile could not be deleted. Please try again.';
-        }
-    } elseif ($action !== 'save') {
-        $errors[] = 'Choose a valid profile action.';
-    } else {
-        if ($isParent) {
-            if ($postedProfileId !== null) {
-                $profile = $profileById[$postedProfileId] ?? null;
-                if (!$profile) {
-                    $errors[] = 'That student profile could not be found.';
+        if (!$errors) {
+            try {
+                $roleQuery = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = 'Student'");
+                $roleQuery->execute();
+                $studentRoleId = $roleQuery->fetchColumn();
+                if ($studentRoleId === false) {
+                    throw new RuntimeException('The Student role must exist in the roles table.');
                 }
+
+                $pdo->beginTransaction();
+                $createStudent = $pdo->prepare(
+                    'INSERT INTO users (role_id, email, password_hash) VALUES (?, ?, ?)'
+                );
+                $createStudent->execute([
+                    (int)$studentRoleId,
+                    $studentEmail,
+                    password_hash($password, PASSWORD_DEFAULT),
+                ]);
+                $studentUserId = (int)$pdo->lastInsertId();
+
+                $createProfile = $pdo->prepare(
+                    'INSERT INTO profiles (user_id, first_name, last_name) VALUES (?, ?, ?)'
+                );
+                $createProfile->execute([$studentUserId, $firstName, $lastName]);
+
+                $linkStudent = $pdo->prepare(
+                    'INSERT INTO parent_student_relationships
+                        (parent_user_id, student_user_id, relationship_type)
+                     VALUES (?, ?, ?)'
+                );
+                $linkStudent->execute([$userId, $studentUserId, $relationshipType]);
+                $pdo->commit();
+
+                $_SESSION['profile_success'] = 'Student account created and linked to your parent account.';
+                header(
+                    'Location: ' . APP_URL . '/public/profile.php?student_user_id=' . $studentUserId,
+                    true,
+                    303
+                );
+                exit;
+            } catch (PDOException $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                if (($exception->errorInfo[1] ?? null) === 1062) {
+                    $errors[] = 'An account with that email address already exists.';
+                } else {
+                    throw $exception;
+                }
+            }
+        }
+    } elseif ($isParent && $action === 'link_student') {
+        $studentEmail = strtolower(trim((string)($_POST['student_email'] ?? '')));
+        $relationshipType = is_string($_POST['relationship_type'] ?? null)
+            ? $_POST['relationship_type']
+            : '';
+        if (strlen($studentEmail) > 255 || !filter_var($studentEmail, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Enter a valid student account email address.';
+        }
+        if (!in_array($relationshipType, ['Parent', 'Guardian', 'Grandparent', 'Other'], true)) {
+            $errors[] = 'Choose a valid relationship to the student.';
+        }
+
+        if (!$errors) {
+            $studentAccount = $pdo->prepare(
+                "SELECT u.user_id
+                   FROM users u
+                   JOIN roles r ON r.role_id = u.role_id
+                  WHERE u.email = ?
+                    AND u.is_active = 1
+                    AND r.role_name = 'Student'"
+            );
+            $studentAccount->execute([$studentEmail]);
+            $studentUserId = $studentAccount->fetchColumn();
+            if ($studentUserId === false) {
+                $errors[] = 'No active student account with that email address was found.';
             } else {
-                $profile = [
-                    'profile_id' => null,
-                    'first_name' => '',
-                    'last_name' => '',
-                    'grade_level' => '',
-                    'gpa' => '',
-                    'state_id' => null,
-                ];
+                try {
+                    $linkStudent = $pdo->prepare(
+                        'INSERT INTO parent_student_relationships
+                            (parent_user_id, student_user_id, relationship_type)
+                         VALUES (?, ?, ?)'
+                    );
+                    $linkStudent->execute([$userId, (int)$studentUserId, $relationshipType]);
+                    $_SESSION['profile_success'] = 'Student account linked to your parent account.';
+                    header(
+                        'Location: ' . APP_URL . '/public/profile.php?student_user_id=' . (int)$studentUserId,
+                        true,
+                        303
+                    );
+                    exit;
+                } catch (PDOException $exception) {
+                    if (($exception->errorInfo[1] ?? null) === 1062) {
+                        $errors[] = 'That student account is already linked to your parent account.';
+                    } else {
+                        throw $exception;
+                    }
+                }
+            }
+        }
+    } elseif ($isParent && $action === 'unlink_student') {
+        if ($postedStudentUserId === null || !isset($studentsById[$postedStudentUserId])) {
+            http_response_code(403);
+            exit('You do not have permission to unlink this student account.');
+        }
+
+        $unlinkStudent = $pdo->prepare(
+            'DELETE FROM parent_student_relationships
+              WHERE parent_user_id = ? AND student_user_id = ?'
+        );
+        $unlinkStudent->execute([$userId, $postedStudentUserId]);
+        if ($unlinkStudent->rowCount() !== 1) {
+            throw new RuntimeException('The student account relationship was not removed.');
+        }
+        $_SESSION['profile_success'] = 'Student account unlinked. Their account and profile were not deleted.';
+        header('Location: ' . APP_URL . '/public/profile.php', true, 303);
+        exit;
+    } elseif ($action === 'delete') {
+        http_response_code(403);
+        exit('Student profiles cannot be deleted from a parent account. Unlink the student instead.');
+    } elseif (!in_array($action, ['save'], true)) {
+        $errors[] = 'Choose a valid profile action.';
+    }
+
+    if ($action === 'save') {
+        if ($isParent) {
+            $profile = $postedStudentUserId !== null
+                ? ($studentsById[$postedStudentUserId] ?? null)
+                : null;
+            if (!$profile) {
+                $errors[] = 'Choose a student account linked to your parent account.';
+            } elseif (
+                $postedProfileId !== null
+                && (int)($profile['profile_id'] ?? 0) !== $postedProfileId
+            ) {
+                $errors[] = 'That student profile could not be found.';
+            } else {
+                $selectedStudentUserId = (int)$profile['student_user_id'];
             }
         } else {
             $profile = $profiles[0] ?? [
+                'user_id' => $userId,
                 'profile_id' => null,
                 'first_name' => '',
                 'last_name' => '',
@@ -150,6 +332,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
         $profile ??= [
+            'user_id' => $userId,
+            'student_user_id' => null,
             'profile_id' => null,
             'first_name' => '',
             'last_name' => '',
@@ -229,7 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $gpa,
                         $stateId,
                         (int)$profile['profile_id'],
-                        $userId,
+                        $isParent ? (int)$profile['student_user_id'] : $userId,
                     ]);
                     $profileId = (int)$profile['profile_id'];
                 } else {
@@ -238,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          VALUES (?, ?, ?, ?, ?, ?)'
                     );
                     $saveProfile->execute([
-                        $userId,
+                        $isParent ? (int)$profile['student_user_id'] : $userId,
                         $firstName !== '' ? $firstName : null,
                         $lastName !== '' ? $lastName : null,
                         $gradeLevel !== '' ? $gradeLevel : null,
@@ -262,7 +446,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['profile_success'] = 'Student profile saved.';
                 $redirect = APP_URL . '/public/profile.php';
                 if ($isParent) {
-                    $redirect .= '?profile_id=' . $profileId;
+                    $redirect .= '?student_user_id=' . (int)$profile['student_user_id'];
                 }
                 header('Location: ' . $redirect, true, 303);
                 exit;
@@ -291,7 +475,7 @@ require_once __DIR__ . '/../includes/header.php';
     <h1 class="h3 mb-1"><?= $isParent ? 'Manage Student Profiles' : 'My Profile' ?></h1>
     <p class="text-muted mb-0">
       <?= $isParent
-          ? 'Create and manage profiles for each student in your family.'
+          ? 'Create student accounts or link existing accounts, then manage their scholarship profiles.'
           : 'Manage the details used to personalize scholarship matches.' ?>
     </p>
   </div>
@@ -318,39 +502,129 @@ require_once __DIR__ . '/../includes/header.php';
 
 <?php if ($isParent): ?>
   <section class="card shadow-sm mb-4" aria-labelledby="student-profiles-heading">
-    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <h2 class="h5 mb-0" id="student-profiles-heading">Student profiles</h2>
-      <a class="btn btn-sm btn-primary" href="<?= e(APP_URL) ?>/public/profile.php?new=1">
-        Add student
-      </a>
+    <div class="card-header">
+      <h2 class="h5 mb-0" id="student-profiles-heading">Students you manage</h2>
     </div>
-    <?php if ($profiles): ?>
+    <?php if ($students): ?>
       <div class="list-group list-group-flush">
-        <?php foreach ($profiles as $savedProfile): ?>
+        <?php foreach ($students as $student): ?>
           <?php
-            $studentName = trim((string)($savedProfile['first_name'] ?? '') . ' ' . (string)($savedProfile['last_name'] ?? ''));
+            $studentUserId = (int)$student['student_user_id'];
+            $studentName = trim((string)($student['first_name'] ?? '') . ' ' . (string)($student['last_name'] ?? ''));
             if ($studentName === '') {
-                $studentName = 'Student profile ' . (int)$savedProfile['profile_id'];
+                $studentName = (string)$student['email'];
             }
           ?>
-          <a class="list-group-item list-group-item-action<?= $selectedProfileId === (int)$savedProfile['profile_id'] ? ' active' : '' ?>"
-             href="<?= e(APP_URL) ?>/public/profile.php?profile_id=<?= (int)$savedProfile['profile_id'] ?>">
-            <?= e($studentName) ?>
-            <?php if ($savedProfile['grade_level']): ?>
-              <span class="ms-2 small"><?= e((string)$savedProfile['grade_level']) ?></span>
-            <?php endif; ?>
-          </a>
+          <div class="list-group-item d-flex flex-wrap align-items-center gap-2">
+            <a class="flex-grow-1 text-decoration-none<?= $selectedStudentUserId === $studentUserId ? ' fw-bold' : '' ?>"
+               href="<?= e(APP_URL) ?>/public/profile.php?student_user_id=<?= $studentUserId ?>">
+              <?= e($studentName) ?>
+              <span class="ms-2 small text-muted">
+                <?= e((string)$student['relationship_type']) ?> · <?= e((string)$student['email']) ?>
+              </span>
+              <?php if ($student['grade_level']): ?>
+                <span class="ms-2 small text-muted"><?= e((string)$student['grade_level']) ?></span>
+              <?php endif; ?>
+              <?php if ($student['profile_id'] === null): ?>
+                <span class="badge text-bg-warning ms-2">Profile needed</span>
+              <?php endif; ?>
+            </a>
+            <form method="post" action="<?= e(APP_URL) ?>/public/profile.php">
+              <?= csrf_field() ?>
+              <input type="hidden" name="action" value="unlink_student">
+              <input type="hidden" name="student_user_id" value="<?= $studentUserId ?>">
+              <button class="btn btn-sm btn-outline-danger" type="submit"
+                      onclick="return confirm('Unlink this student? Their account and profile will remain intact.');">
+                Unlink
+              </button>
+            </form>
+          </div>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <div class="card-body text-muted">No student profiles yet. Add one to get started.</div>
+      <div class="card-body text-muted">No student accounts are linked yet.</div>
     <?php endif; ?>
+    <div class="card-body border-top">
+      <h3 class="h5">Create a student account</h3>
+      <p class="text-muted">Create a separate sign-in for a student you are responsible for. They can sign in with the email and password you set here.</p>
+      <form method="post" action="<?= e(APP_URL) ?>/public/profile.php" class="row g-3">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="create_student">
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_first_name">Student first name</label>
+          <input class="form-control" id="new_student_first_name" name="first_name"
+                 required maxlength="100" autocomplete="given-name">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_last_name">Student last name</label>
+          <input class="form-control" id="new_student_last_name" name="last_name"
+                 required maxlength="100" autocomplete="family-name">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_email">Student email</label>
+          <input class="form-control" type="email" id="new_student_email" name="student_email"
+                 required maxlength="255" autocomplete="email">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_relationship">Your relationship</label>
+          <select class="form-select" id="new_student_relationship" name="relationship_type" required>
+            <option value="Parent">Parent</option>
+            <option value="Guardian">Guardian</option>
+            <option value="Grandparent">Grandparent</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_password">Student password</label>
+          <input class="form-control" type="password" id="new_student_password" name="password"
+                 required minlength="8" maxlength="72" autocomplete="new-password">
+          <div class="form-text">Use 8–72 bytes. Share the password securely with the student.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="new_student_password_confirmation">Confirm student password</label>
+          <input class="form-control" type="password" id="new_student_password_confirmation"
+                 name="password_confirmation" required minlength="8" maxlength="72"
+                 autocomplete="new-password">
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit">Create student account</button>
+        </div>
+      </form>
+    </div>
+    <div class="card-body border-top">
+      <h3 class="h6">Link an existing student account</h3>
+      <form method="post" action="<?= e(APP_URL) ?>/public/profile.php" class="row g-2">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="link_student">
+        <div class="col-md-6">
+          <label class="form-label" for="existing_student_email">Student account email</label>
+          <input class="form-control" type="email" id="existing_student_email" name="student_email"
+                 required maxlength="255" autocomplete="email">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="existing_student_relationship">Your relationship</label>
+          <select class="form-select" id="existing_student_relationship" name="relationship_type" required>
+            <option value="Parent">Parent</option>
+            <option value="Guardian">Guardian</option>
+            <option value="Grandparent">Grandparent</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-outline-primary" type="submit">Link account</button>
+        </div>
+      </form>
+    </div>
   </section>
 <?php endif; ?>
 
-<form method="post" action="<?= e(APP_URL) ?>/public/profile.php<?= $isParent && $selectedProfileId ? '?profile_id=' . $selectedProfileId : ($isParent ? '?new=1' : '') ?>">
+<?php if (!$isParent || $selectedStudentUserId !== null): ?>
+<form method="post" action="<?= e(APP_URL) ?>/public/profile.php<?= $isParent ? '?student_user_id=' . $selectedStudentUserId : '' ?>">
   <?= csrf_field() ?>
   <input type="hidden" name="action" value="save">
+  <?php if ($isParent): ?>
+    <input type="hidden" name="student_user_id" value="<?= $selectedStudentUserId ?>">
+  <?php endif; ?>
   <?php if ($selectedProfileId): ?>
     <input type="hidden" name="profile_id" value="<?= $selectedProfileId ?>">
   <?php endif; ?>
@@ -359,13 +633,16 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card-header"><h2 class="h5 mb-0">Student information</h2></div>
     <div class="card-body">
       <div class="row g-3">
-        <?php if (!$isParent): ?>
-          <div class="col-md-6">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" value="<?= e((string)$user['email']) ?>" readonly>
-            <div class="form-text">Contact an administrator if you need to change your email.</div>
+        <div class="col-md-6">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email"
+                 value="<?= e($isParent ? (string)$profile['email'] : (string)$user['email']) ?>" readonly>
+          <div class="form-text">
+            <?= $isParent
+                ? 'Student account email is managed by the student.'
+                : 'Contact an administrator if you need to change your email.' ?>
           </div>
-        <?php endif; ?>
+        </div>
         <div class="col-md-6">
           <label for="first_name" class="form-label">First name</label>
           <input type="text" class="form-control" id="first_name" name="first_name" maxlength="100"
@@ -439,21 +716,9 @@ require_once __DIR__ . '/../includes/header.php';
       <a class="btn btn-outline-primary me-auto"
          href="<?= e(APP_URL) ?>/public/my_matches.php?profile_id=<?= $selectedProfileId ?>">View matches</a>
     <?php endif; ?>
-    <?php if ($isParent && $selectedProfileId): ?>
-      <button class="btn btn-outline-danger" type="submit" form="deleteProfileForm">Delete student</button>
-    <?php endif; ?>
     <button type="submit" class="btn btn-primary">Save profile</button>
   </div>
 </form>
-
-<?php if ($isParent && $selectedProfileId): ?>
-  <form id="deleteProfileForm" method="post"
-        action="<?= e(APP_URL) ?>/public/profile.php?profile_id=<?= $selectedProfileId ?>"
-        onsubmit="return confirm('Delete this student profile? This cannot be undone.');">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="profile_id" value="<?= $selectedProfileId ?>">
-  </form>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -38,9 +38,10 @@ are hashed with PHP's `password_hash()`. Log in to start a session; sessions rot
 their ID on login and expire after the configured `SESSION_TIMEOUT` of inactivity.
 Admin, import, and data-quality pages require an Administrator or Super-admin role.
 Signed-in students can manage their grade, state, and interests on their profile.
-Parents can create and manage multiple student profiles from the same page. The
-**My Matches** page shows current scholarships matching the selected student's
-profile. Users can also reach password settings from the navigation; the Admin
+Parents can create student login accounts or link existing Student accounts from
+**Manage students**, then update each student's scholarship profile. The
+**My Matches** page shows current scholarships matching the selected linked
+student's profile. Users can also reach password settings from the navigation; the Admin
 menu is shown only to Administrators and Super-admins. Visitors see links to log
 in or register instead of account actions.
 

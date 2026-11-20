@@ -11,12 +11,32 @@ if (!$userId) {
 
 $pdo = db();
 $isParent = normalized_role(current_role()) === 'parent';
-$profilesStmt = $pdo->prepare(
-    'SELECT profile_id, first_name, last_name, grade_level, state_id
-       FROM profiles
-      WHERE user_id = ?
-      ORDER BY profile_id'
-);
+if ($isParent) {
+    $profilesStmt = $pdo->prepare(
+        "SELECT p.profile_id, p.first_name, p.last_name, p.grade_level, p.state_id,
+                u.email
+           FROM parent_student_relationships psr
+           JOIN users u ON u.user_id = psr.student_user_id
+           JOIN roles r ON r.role_id = u.role_id
+           JOIN profiles p
+             ON p.profile_id = (
+                 SELECT MIN(p2.profile_id)
+                   FROM profiles p2
+                  WHERE p2.user_id = u.user_id
+             )
+          WHERE psr.parent_user_id = ?
+            AND u.is_active = 1
+            AND r.role_name = 'Student'
+          ORDER BY p.first_name, p.last_name, u.email"
+    );
+} else {
+    $profilesStmt = $pdo->prepare(
+        'SELECT profile_id, first_name, last_name, grade_level, state_id, NULL AS email
+           FROM profiles
+          WHERE user_id = ?
+          ORDER BY profile_id'
+    );
+}
 $profilesStmt->execute([$userId]);
 $profiles = $profilesStmt->fetchAll();
 
@@ -113,7 +133,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
-    <h1 class="h3 mb-1">My Matches</h1>
+    <h1 class="h3 mb-1"><?= $isParent ? 'Student Matches' : 'My Matches' ?></h1>
     <p class="text-muted mb-0">Scholarships matched to a student profile.</p>
   </div>
   <a class="btn btn-outline-primary" href="<?= e(APP_URL) ?>/public/profile.php">Manage profiles</a>
@@ -121,19 +141,21 @@ require_once __DIR__ . '/../includes/header.php';
 
 <?php if (!$profiles): ?>
   <div class="alert alert-info">
-    Add a student profile with a grade, state, or interests to see matching scholarships.
-    <a href="<?= e(APP_URL) ?>/public/profile.php">Create a profile</a>.
+    <?= $isParent
+        ? 'Create or link a student account, then add a grade, state, or interests to see matching scholarships.'
+        : 'Add a student profile with a grade, state, or interests to see matching scholarships.' ?>
+    <a href="<?= e(APP_URL) ?>/public/profile.php"><?= $isParent ? 'Manage students' : 'Create a profile' ?></a>.
   </div>
 <?php else: ?>
   <?php if ($isParent): ?>
     <div class="mb-3">
-      <label class="form-label" for="match-profile">Student</label>
+      <label class="form-label" for="match-profile">Linked student</label>
       <select class="form-select" id="match-profile" onchange="if (this.value) window.location.href = this.value;">
         <?php foreach ($profiles as $candidate): ?>
           <?php
             $candidateName = trim((string)($candidate['first_name'] ?? '') . ' ' . (string)($candidate['last_name'] ?? ''));
             if ($candidateName === '') {
-                $candidateName = 'Student profile ' . (int)$candidate['profile_id'];
+                $candidateName = $candidate['email'] ?: 'Student profile ' . (int)$candidate['profile_id'];
             }
           ?>
           <option value="<?= e(APP_URL) ?>/public/my_matches.php?profile_id=<?= (int)$candidate['profile_id'] ?>"
