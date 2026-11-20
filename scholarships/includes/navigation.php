@@ -50,8 +50,7 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
             </form>
           </li>
         <?php else: ?>
-          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/login.php">Log in</a></li>
-          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/register.php">Register</a></li>
+          <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/login.php">Login</a></li>
         <?php endif; ?>
 
         <?php if ($showAdmin): ?>

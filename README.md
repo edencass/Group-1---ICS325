@@ -42,8 +42,8 @@ Parents can create student login accounts or link existing Student accounts from
 **Manage students**, then update each student's scholarship profile. The
 **My Matches** page shows current scholarships matching the selected linked
 student's profile. Users can also reach password settings from the navigation; the Admin
-menu is shown only to Administrators and Super-admins. Visitors see links to log
-in or register instead of account actions.
+menu is shown only to Administrators and Super-admins. Visitors see a Login link,
+with registration available from the login page.
 
 ## Branching Strategy
 

@@ -67,7 +67,9 @@ require_once __DIR__ . '/../includes/header.php';
   </div>
   <div class="col-12">
     <button class="btn btn-primary" type="submit">Log in</button>
-    <a class="btn btn-link" href="<?= e(APP_URL) ?>/public/register.php">Create an account</a>
+    <span class="ms-2">Don't have an account?
+      <a href="<?= e(APP_URL) ?>/public/register.php">Register</a>
+    </span>
   </div>
 </form>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
