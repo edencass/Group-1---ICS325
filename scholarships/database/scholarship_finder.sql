@@ -223,6 +223,7 @@ CREATE TABLE IF NOT EXISTS saved_scholarships (
     saved_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     scholarship_id INT NOT NULL,
+    status ENUM('Interested','In Progress','Submitted','Awarded','Not Awarded') NOT NULL DEFAULT 'Interested', -- ADDED FOR ITERATION 8
     saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_saved_user
