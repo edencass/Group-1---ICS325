@@ -32,6 +32,10 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
           <li class="nav-item">
             <a class="nav-link" href="<?= e(APP_URL) ?>/public/my_matches.php">My Matches</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/saved_scholarships.php">My Saved</a>
+          </li>
+
           <?php if ($normalizedRole === 'parent'): ?>
             <li class="nav-item">
               <a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarships_public_parent_dashboard.php">Parent Dashboard</a>
@@ -73,6 +77,9 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
           </li>
         <?php endif; ?>
       </ul>
+    </div>
+  </div>
+</nav>
     </div>
   </div>
 </nav>
