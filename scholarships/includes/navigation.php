@@ -27,7 +27,7 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
 
         <?php if ($isLoggedIn): ?>
           <li class="nav-item">
-            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php"><?= $normalizedRole === 'parent' ? 'Manage students' : 'My profile' ?></a>
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php"><?= $normalizedRole === 'parent' ? 'Manage Students' : 'My Profile' ?></a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="<?= e(APP_URL) ?>/public/my_matches.php">My Matches</a>
