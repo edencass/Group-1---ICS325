@@ -27,6 +27,16 @@
           <p class="mb-0"><strong>Verification date:</strong>
             <?= !empty($r['verification_date']) ? e(format_date_us((string)$r['verification_date'])) : 'Unverified' ?>
           </p>
+          
+          <!-- ADDED: Save Button for Mobile -->
+          <div class="mt-3">
+            <?php if (is_logged_in()): ?>
+              <button class="btn btn-sm btn-outline-primary save-btn w-100" data-scholarship-id="<?= (int)$r['scholarship_id'] ?>">Save Scholarship</button>
+            <?php else: ?>
+              <a href="login.php" class="btn btn-sm btn-outline-secondary w-100">Log in to save</a>
+            <?php endif; ?>
+          </div>
+          
         </div>
       </div>
     <?php endforeach; ?>
@@ -45,6 +55,7 @@
             <th>Deadline</th>
             <th>Official URL</th>
             <th>Verification date</th>
+            <th>Save</th> <!-- ADDED -->
           </tr>
         </thead>
         <tbody>
@@ -65,6 +76,16 @@
               <?php endif; ?>
             </td>
             <td><?= !empty($r['verification_date']) ? e(format_date_us((string)$r['verification_date'])) : 'Unverified' ?></td>
+            
+            <!-- ADDED: Save Button for Desktop -->
+            <td>
+              <?php if (is_logged_in()): ?>
+                <button class="btn btn-sm btn-outline-primary save-btn" data-scholarship-id="<?= (int)$r['scholarship_id'] ?>">Save</button>
+              <?php else: ?>
+                <a href="login.php" class="btn btn-sm btn-outline-secondary">Log in</a>
+              <?php endif; ?>
+            </td>
+            
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -72,3 +93,40 @@
     </div>
   </div>
 <?php endif; ?>
+
+<!-- ADDED: JavaScript for AJAX Save -->
+<script>
+$(document).ready(function() {
+  // Use event delegation on the document body so it works for AJAX-loaded content
+  $(document).on('click', '.save-btn', function() {
+    const btn = $(this);
+    const schId = btn.data('scholarship-id');
+    
+    // Change button state to show it's working
+    btn.prop('disabled', true).text('Saving...');
+    
+    $.ajax({
+      url: 'toggle_save.php',
+      type: 'POST',
+      data: {
+        scholarship_id: schId,
+        action: 'save',
+        csrf_token: '<?= csrf_token() ?>'
+      },
+      dataType: 'json',
+      success: function(data) {
+        if (data.success) {
+          btn.text('Saved!').removeClass('btn-outline-primary').addClass('btn-success');
+        } else {
+          alert('Error: ' + data.error);
+          btn.prop('disabled', false).text('Save');
+        }
+      },
+      error: function() {
+        alert('Network error. Please check the console.');
+        btn.prop('disabled', false).text('Save');
+      }
+    });
+  });
+});
+</script>
