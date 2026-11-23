@@ -2,6 +2,17 @@
 $page_title = 'Home';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/header.php';
+
+$pdo = db();
+
+// Fetch summary statistics for the cards
+$summary = $pdo->query(
+    "SELECT COUNT(*) AS total,
+            COALESCE(SUM(is_national = 1), 0) AS national,
+            COALESCE(SUM(is_national = 0), 0) AS local,
+            AVG(amount) AS average_award
+       FROM scholarships"
+)->fetch(PDO::FETCH_ASSOC) ?: [];
 ?>
 
 <section class="bg-light py-5 mb-5">
@@ -40,6 +51,63 @@ require_once __DIR__ . '/../includes/header.php';
     <p class="text-muted mb-0">
       Review scholarship details and apply for opportunities that interest you.
     </p>
+  </div>
+</section>
+
+<!-- ADDED: Scholarship Facts Summary Cards -->
+<section class="py-5 mb-5 bg-light rounded-3">
+  <div class="container">
+    <h2 class="text-center mb-4">Scholarship Facts</h2>
+    
+    <div class="row g-3 justify-content-center">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <div class="text-muted small">Scholarships listed</div>
+            <div class="display-6"><?= (int)($summary['total'] ?? 0) ?></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <div class="text-muted small">National</div>
+            <div class="display-6"><?= (int)($summary['national'] ?? 0) ?></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <div class="text-muted small">State/local</div>
+            <div class="display-6"><?= (int)($summary['local'] ?? 0) ?></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <div class="text-muted small">Average listed award</div>
+            <div class="display-6">
+              <?php if ($summary['average_award'] !== null): ?>
+                $<?= number_format((float)$summary['average_award'], 0) ?>
+              <?php else: ?>
+                —
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php" class="btn btn-outline-primary">
+        View detailed charts
+      </a>
+    </div>
   </div>
 </section>
 
