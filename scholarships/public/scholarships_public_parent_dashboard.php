@@ -44,8 +44,8 @@ $savedQuery = $pdo->prepare(
             s.deadline,
             s.official_url,
             p.provider_name,
-            pr.first_name,
-            pr.last_name,
+            prf.first_name,
+            prf.last_name,
             pr.email
        FROM parent_student_relationships psr
        JOIN saved_scholarships ss
@@ -93,18 +93,14 @@ require_once __DIR__ . '/../includes/header.php';
 <?php else: ?>
   <?php
   $childCount = count($children);
-  $deadlineCount = 0;
   $expiredCount = 0;
   $today = date('Y-m-d');
 
-  foreach ($rows as $row):
-    if ($row['deadline']) {
-      $deadlineCount++;
-      if ($row['deadline'] < $today) {
-        $expiredCount++;
+  foreach ($rows as $row) {
+      if (!empty($row['deadline']) && $row['deadline'] < $today) {
+          $expiredCount++;
       }
-    }
-  endforeach;
+  }
   ?>
 
   <div class="row g-3 mb-4">
@@ -155,11 +151,11 @@ require_once __DIR__ . '/../includes/header.php';
         <tbody>
           <?php foreach ($rows as $row):
             $studentName = trim(
-              (($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))
+                ($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')
             );
 
             if ($studentName === '') {
-              $studentName = $row['email'];
+                $studentName = $row['email'] ?? '';
             }
 
             $deadline = $row['deadline'];
@@ -167,19 +163,19 @@ require_once __DIR__ . '/../includes/header.php';
             $statusClass = 'secondary';
 
             if ($deadline) {
-              if ($deadline < $today) {
-                $status = 'Expired';
-                $statusClass = 'danger';
-              } elseif ($deadline === $today) {
-                $status = 'Due today';
-                $statusClass = 'warning';
-              } elseif ($deadline <= date('Y-m-d', strtotime('+30 days'))) {
-                $status = 'Due soon';
-                $statusClass = 'warning';
-              } else {
-                $status = 'Upcoming';
-                $statusClass = 'success';
-              }
+                if ($deadline < $today) {
+                    $status = 'Expired';
+                    $statusClass = 'danger';
+                } elseif ($deadline === $today) {
+                    $status = 'Due today';
+                    $statusClass = 'warning';
+                } elseif ($deadline <= date('Y-m-d', strtotime('+30 days'))) {
+                    $status = 'Due soon';
+                    $statusClass = 'warning';
+                } else {
+                    $status = 'Upcoming';
+                    $statusClass = 'success';
+                }
             }
           ?>
             <tr>
@@ -188,22 +184,20 @@ require_once __DIR__ . '/../includes/header.php';
               <td><?= e($row['provider_name']) ?></td>
               <td>
                 <?= $row['amount'] !== null
-                  ? '$' . number_format((float)$row['amount'])
-                  : 'Varies' ?>
+                    ? '$' . number_format((float) $row['amount'])
+                    : 'Varies' ?>
               </td>
               <td>
-                <?= $deadline
-                  ? e(format_date_us($deadline))
-                  : 'Rolling' ?>
+                <?= $deadline ? e(format_date_us($deadline)) : 'Rolling' ?>
               </td>
               <td>
-                <span class="badge text-bg-<?= $statusClass ?>">
+                <span class="badge text-bg-<?= e($statusClass) ?>">
                   <?= e($status) ?>
                 </span>
               </td>
               <td>
                 <a class="btn btn-sm btn-outline-primary"
-                   href="<?= e(APP_URL) ?>/public/scholarship_detail.php?id=<?= (int)$row['scholarship_id'] ?>">
+                   href="<?= e(APP_URL) ?>/public/scholarship_detail.php?id=<?= (int) $row['scholarship_id'] ?>">
                   View
                 </a>
               </td>
