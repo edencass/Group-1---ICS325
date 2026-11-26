@@ -17,5 +17,6 @@ require_once __DIR__ . '/security.php';
     <?= $extra_head_html ?? '' ?>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <?php include __DIR__ . '/navigation.php'; ?>
-<main class="container py-4">
+<main class="container py-4" id="main-content" tabindex="-1">

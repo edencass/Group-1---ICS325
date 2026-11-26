@@ -148,23 +148,26 @@ require_once __DIR__ . '/../includes/header.php';
   </div>
 <?php else: ?>
   <?php if ($isParent): ?>
-    <div class="mb-3">
-      <label class="form-label" for="match-profile">Linked student</label>
-      <select class="form-select" id="match-profile" onchange="if (this.value) window.location.href = this.value;">
-        <?php foreach ($profiles as $candidate): ?>
-          <?php
-            $candidateName = trim((string)($candidate['first_name'] ?? '') . ' ' . (string)($candidate['last_name'] ?? ''));
-            if ($candidateName === '') {
-                $candidateName = $candidate['email'] ?: 'Student profile ' . (int)$candidate['profile_id'];
-            }
-          ?>
-          <option value="<?= e(APP_URL) ?>/public/my_matches.php?profile_id=<?= (int)$candidate['profile_id'] ?>"
-            <?= $selectedProfileId === (int)$candidate['profile_id'] ? 'selected' : '' ?>>
-            <?= e($candidateName) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-    </div>
+    <form method="get" action="<?= e(APP_URL) ?>/public/my_matches.php" class="mb-3 d-flex align-items-end gap-2">
+      <div>
+        <label class="form-label" for="match-profile">Linked student</label>
+        <select class="form-select" id="match-profile" name="profile_id">
+          <?php foreach ($profiles as $candidate): ?>
+            <?php
+              $candidateName = trim((string)($candidate['first_name'] ?? '') . ' ' . (string)($candidate['last_name'] ?? ''));
+              if ($candidateName === '') {
+                  $candidateName = $candidate['email'] ?: 'Student profile ' . (int)$candidate['profile_id'];
+              }
+            ?>
+            <option value="<?= (int)$candidate['profile_id'] ?>"
+              <?= $selectedProfileId === (int)$candidate['profile_id'] ? 'selected' : '' ?>>
+              <?= e($candidateName) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Show matches</button>
+    </form>
   <?php endif; ?>
 
   <?php if ($profile): ?>

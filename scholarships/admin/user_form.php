@@ -67,12 +67,12 @@ require_once __DIR__ . '/../includes/header.php';
 <form method="post" class="row g-3" style="max-width: 600px;">
   <?= csrf_field() ?>
   <div class="col-12">
-    <label class="form-label">Email Address</label>
-    <input type="email" class="form-control" name="email" value="<?= e($data['email']) ?>" required>
+    <label class="form-label" for="email">Email Address</label>
+    <input type="email" class="form-control" id="email" name="email" value="<?= e($data['email']) ?>" required>
   </div>
   <div class="col-12">
-    <label class="form-label">Role</label>
-    <select class="form-select" name="role_id" required>
+    <label class="form-label" for="role_id">Role</label>
+    <select class="form-select" id="role_id" name="role_id" required>
       <option value="">-- choose --</option>
       <?php foreach ($roles as $r): ?>
         <option value="<?= (int)$r['role_id'] ?>" <?= ((string)$r['role_id'] === $data['role_id']) ? 'selected' : '' ?>>
@@ -82,8 +82,8 @@ require_once __DIR__ . '/../includes/header.php';
     </select>
   </div>
   <div class="col-12">
-    <label class="form-label"><?= $isNew ? 'Password' : 'Reset Password (leave blank to keep)' ?></label>
-    <input type="password" class="form-control" name="password" <?= $isNew ? 'required' : '' ?>>
+    <label class="form-label" for="password"><?= $isNew ? 'Password' : 'Reset Password (leave blank to keep)' ?></label>
+    <input type="password" class="form-control" id="password" name="password" <?= $isNew ? 'required' : '' ?>>
   </div>
   <div class="col-12 mt-4">
     <button class="btn btn-primary" type="submit">Save User</button>

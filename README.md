@@ -45,6 +45,14 @@ student's profile. Users can also reach password settings from the navigation; t
 menu is shown only to Administrators and Super-admins. Visitors see a Login link,
 with registration available from the login page.
 
+## Accessibility
+
+The shared page layout provides a keyboard skip link, semantic navigation and main
+landmarks, visible keyboard focus, and high-contrast navigation and muted text.
+Interactive forms use associated labels, and dynamic search results announce
+updates to assistive technology. These improvements target WCAG 2.1 AA; test
+changes in supported browsers and with assistive technology before release.
+
 ## Branching Strategy
 
 main

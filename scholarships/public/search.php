@@ -15,7 +15,7 @@ $keyword   = trim((string)($_GET['q'] ?? ''));
 
 <h1 class="mb-4">Search Scholarships</h1>
 
-<form id="searchForm" class="row g-2 mb-4 bg-light p-3 rounded">
+<form id="searchForm" class="row g-2 mb-4 bg-light p-3 rounded" role="search" aria-label="Scholarship search filters">
   <div class="col-md-3">
     <label class="form-label" for="state">State</label>
     <select class="form-select" id="state" name="state">
@@ -64,26 +64,33 @@ $keyword   = trim((string)($_GET['q'] ?? ''));
   </div>
 </form>
 
-<div id="resultsContainer">
+<p id="searchStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">Loading search results.</p>
+<div id="resultsContainer" aria-busy="true">
   <div class="text-center py-5 text-muted">Loading results...</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $(document).ready(function() {
+  const resultsContainer = $('#resultsContainer');
+  const searchStatus = $('#searchStatus');
+
   function fetchResults() {
     const formData = $('#searchForm').serialize();
-    $('#resultsContainer').css('opacity', '0.5');
+    resultsContainer.attr('aria-busy', 'true').css('opacity', '0.5');
+    searchStatus.text('Updating search results.');
 
     $.ajax({
       url: 'search_results.php',
       type: 'GET',
       data: formData,
       success: function(response) {
-        $('#resultsContainer').html(response).css('opacity', '1');
+        resultsContainer.html(response).css('opacity', '1').attr('aria-busy', 'false');
+        searchStatus.text('Search results updated.');
       },
       error: function() {
-        $('#resultsContainer').html('<div class="alert alert-danger">Error loading results.</div>').css('opacity', '1');
+        resultsContainer.html('<div class="alert alert-danger">Error loading results.</div>').css('opacity', '1').attr('aria-busy', 'false');
+        searchStatus.text('Unable to load search results.');
       }
     });
   }
@@ -100,7 +107,7 @@ $(document).ready(function() {
 
   // Trigger AJAX when typing in keyword (with 500ms delay)
   let typingTimer;
-  $('#q').on('keyup', function() {
+  $('#q').on('input', function() {
     clearTimeout(typingTimer);
     typingTimer = setTimeout(fetchResults, 500);
   });

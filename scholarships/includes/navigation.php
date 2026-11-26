@@ -4,7 +4,7 @@ $isLoggedIn = is_logged_in();
 $normalizedRole = normalized_role(current_role());
 $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], true);
 ?>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary" aria-label="Primary">
   <div class="container-fluid px-4">
     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="<?= e(APP_URL) ?>/public/index.php">
       <img src="<?= e(APP_URL) ?>/Images/ScholarshipLogo.png"

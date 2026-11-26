@@ -1,0 +1,50 @@
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2000;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  color: #111;
+  transform: translateY(calc(-100% - 0.5rem));
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.navbar.navbar-dark.bg-primary {
+  background-color: #084298 !important;
+}
+
+.navbar.navbar-dark .navbar-brand,
+.navbar.navbar-dark .navbar-nav .nav-link {
+  color: #fff;
+}
+
+.navbar.navbar-dark .navbar-nav .nav-link:hover {
+  text-decoration: underline;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.form-check-input:focus-visible,
+.nav-link:focus-visible,
+.dropdown-item:focus-visible,
+.navbar-toggler:focus-visible,
+.skip-link:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px #fff;
+}
+
+.text-muted {
+  color: #5a6268 !important;
+}
