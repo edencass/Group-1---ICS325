@@ -26,20 +26,21 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
         <li class="nav-item"><a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarship-facts_Version2.php">Scholarship Facts</a></li>
 
         <?php if ($isLoggedIn): ?>
-          <?php if ($normalizedRole === 'parent'): ?>
-            <li class="nav-item">
-              <a class="nav-link" href="<?= e(APP_URL) ?>/public/parent_dashboard.php">
-                Family Scholarships
-              </a>
-            </li>
-          <?php endif; ?>
-
           <li class="nav-item">
-            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php"><?= $normalizedRole === 'parent' ? 'Manage students' : 'My profile' ?></a>
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/profile.php"><?= $normalizedRole === 'parent' ? 'Manage Students' : 'My Profile' ?></a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="<?= e(APP_URL) ?>/public/my_matches.php">My Matches</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="<?= e(APP_URL) ?>/public/saved_scholarships.php">My Saved</a>
+          </li>
+
+          <?php if ($normalizedRole === 'parent'): ?>
+            <li class="nav-item">
+              <a class="nav-link" href="<?= e(APP_URL) ?>/public/scholarships_public_parent_dashboard.php">Parent Dashboard</a>
+            </li>
+          <?php endif; ?>
           <li class="nav-item">
             <a class="nav-link" href="<?= e(APP_URL) ?>/public/change_password.php">Change Password</a>
           </li>
@@ -76,6 +77,9 @@ $showAdmin = $isLoggedIn && in_array($normalizedRole, ['admin', 'super-admin'], 
           </li>
         <?php endif; ?>
       </ul>
+    </div>
+  </div>
+</nav>
     </div>
   </div>
 </nav>

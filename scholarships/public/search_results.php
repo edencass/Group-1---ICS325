@@ -71,13 +71,13 @@ $sql = "SELECT s.scholarship_id, s.title, s.amount, s.deadline, s.description,
           LEFT JOIN states st ON st.state_id = s.state_id
          WHERE " . implode(' AND ', $where) . "
          ORDER BY s.deadline IS NULL, s.deadline ASC
-         LIMIT 100";
+         LIMIT 300";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll();
 ?>
 
-<p class="text-muted small mb-3"><?= count($rows) ?> result<?= count($rows) === 1 ? '' : 's' ?> shown (max 100).</p>
+<p class="text-muted small mb-3"><?= count($rows) ?> result<?= count($rows) === 1 ? '' : 's' ?> shown (max 300).</p>
 
 <?php include __DIR__ . '/responsive.php'; ?>

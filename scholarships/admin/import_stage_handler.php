@@ -70,9 +70,12 @@ foreach ($payload as $file) {
             $existing = null;
 
             // ---- 2. FR-IMP-06 scope 1 & 2: within file + across files ----
-            if ($nurl && isset($seenInBatch[$nurl])) {
+            // Create a unique key using BOTH URL and Scholarship Name
+            $duplicateKey = $nurl ? $nurl . '|' . strtolower(trim($res['cleaned']['name'])) : null;
+
+            if ($duplicateKey && isset($seenInBatch[$duplicateKey])) {
                 $status = 'Duplicate';
-                $reason = 'Duplicate of ' . $seenInBatch[$nurl] . ' (same normalized URL).';
+                $reason = 'Duplicate of ' . $seenInBatch[$duplicateKey] . ' (same URL and name).';
             } else {
                 // ---- 3. FR-IMP-06 scope 3: against records already loaded ----
                 if ($nurl) {
@@ -88,8 +91,10 @@ foreach ($payload as $file) {
                     $stmt->execute(['like' => $like]);
                     foreach ($stmt->fetchAll() as $hit) {
                         $hitJson = json_decode((string)$hit['description'], true);
+                        // Check if URL matches AND title matches (case-insensitive)
                         if (is_array($hitJson)
-                            && ($hitJson['normalized_url'] ?? null) === $nurl) {
+                            && ($hitJson['normalized_url'] ?? null) === $nurl
+                            && strcasecmp(trim($hit['title']), trim($res['cleaned']['name'])) === 0) {
                             $existing = $hit;
                             break;
                         }
@@ -107,10 +112,10 @@ foreach ($payload as $file) {
                 }
                 // else: $status stays 'Ready'
 
-                // Record URL in batch map so later rows in later files
+                // Record the combined key in the batch map so later rows in later files
                 // can detect duplicates against this row (scope 2).
-                if ($nurl && !$existing) {
-                    $seenInBatch[$nurl] = $name . ' row ' . $rowNumber;
+                if ($duplicateKey && !$existing) {
+                    $seenInBatch[$duplicateKey] = $name . ' row ' . $rowNumber;
                 }
             }
         }
